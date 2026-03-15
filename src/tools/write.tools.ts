@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { GarminClient } from '../client';
+import { GarminClient, buildWorkoutPayload } from '../client';
 import {
   setActivityNameSchema,
   createManualActivitySchema,
@@ -8,7 +8,10 @@ import {
   setHydrationSchema,
   setBloodPressureSchema,
   gearActivitySchema,
+  createWorkoutSchema,
+  scheduleWorkoutSchema,
 } from '../dtos';
+import type { CreateWorkoutDto } from '../dtos';
 
 export function registerWriteTools(server: McpServer, client: GarminClient): void {
   server.registerTool(
@@ -126,6 +129,43 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
       const data = await client.removeGearFromActivity(gearUuid, activityId);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data ?? 'Gear unlinked', null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'create_workout',
+    {
+      description:
+        'Create a structured running workout with warmup, intervals, repeats, and cooldown. Steps support time/distance end conditions and pace/heart rate targets',
+      inputSchema: createWorkoutSchema.shape,
+    },
+    async ({ workoutName, steps, estimatedDurationInSecs, description }) => {
+      const dto: CreateWorkoutDto = {
+        workoutName,
+        steps: steps as CreateWorkoutDto['steps'],
+        estimatedDurationInSecs,
+        description,
+      };
+      const payload = buildWorkoutPayload(dto);
+      const data = await client.createWorkout(payload);
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'schedule_workout',
+    {
+      description:
+        'Schedule an existing workout to a specific date on the Garmin calendar. Use get_workouts to find workout IDs',
+      inputSchema: scheduleWorkoutSchema.shape,
+    },
+    async ({ workoutId, date }) => {
+      const data = await client.scheduleWorkout(workoutId, date);
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
       };
     },
   );

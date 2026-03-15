@@ -750,4 +750,18 @@ export class GarminClient {
       { method: 'PUT' },
     );
   }
+
+  async createWorkout(payload: Record<string, unknown>): Promise<unknown> {
+    return this.request(WORKOUT_ENDPOINT, {
+      method: 'POST',
+      body: payload,
+    });
+  }
+
+  async scheduleWorkout(workoutId: number, date: string): Promise<unknown> {
+    return this.request(`${SCHEDULED_WORKOUT_ENDPOINT}/${workoutId}`, {
+      method: 'POST',
+      body: { date },
+    });
+  }
 }
