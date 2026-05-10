@@ -17,8 +17,8 @@ const END_CONDITION_MAP: Record<string, { conditionTypeId: number; conditionType
 
 const TARGET_TYPE_MAP: Record<string, { workoutTargetTypeId: number; workoutTargetTypeKey: string }> = {
   'no.target': { workoutTargetTypeId: 1, workoutTargetTypeKey: 'no.target' },
-  speed: { workoutTargetTypeId: 4, workoutTargetTypeKey: 'speed.zone' },
-  'heart.rate.zone': { workoutTargetTypeId: 2, workoutTargetTypeKey: 'heart.rate.zone' },
+  speed: { workoutTargetTypeId: 6, workoutTargetTypeKey: 'speed.zone' },
+  'heart.rate.zone': { workoutTargetTypeId: 4, workoutTargetTypeKey: 'heart.rate.zone' },
 };
 
 const RUNNING_SPORT = { sportTypeId: 1, sportTypeKey: 'running', displayOrder: 1 };
