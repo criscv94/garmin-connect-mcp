@@ -2,7 +2,7 @@
 
 MCP server for Garmin Connect. Access your fitness, health, and training data from Claude Code, Claude Desktop, Cursor, Windsurf, or any MCP client.
 
-**61 tools** across 7 categories: activities, daily health, trends, sleep, body composition, performance/training, and profile/devices.
+**63 tools** across 7 categories: activities, daily health, trends, sleep, body composition, performance/training, and profile/devices.
 
 API endpoints and authentication flow based on [`python-garminconnect`](https://github.com/cyberjunky/python-garminconnect) by [cyberjunky](https://github.com/cyberjunky).
 
@@ -160,7 +160,7 @@ The server communicates over stdio using the [Model Context Protocol](https://mo
 | `get_lactate_threshold` | Lactate threshold HR and pace |
 | `get_cycling_ftp` | Functional Threshold Power (cycling) |
 
-### Profile & Devices (13 tools)
+### Profile & Devices (15 tools)
 | Tool | Description |
 |------|-------------|
 | `get_user_profile` | User social profile and preferences |
@@ -176,6 +176,8 @@ The server communicates over stdio using the [Model Context Protocol](https://mo
 | `get_earned_badges` | Earned badges and achievements |
 | `get_workouts` | Saved workouts |
 | `get_workout` | Specific workout by ID |
+| `create_workout` | Create a structured running workout (warmup, intervals, repeats, cooldown) |
+| `schedule_workout` | Schedule an existing workout to a date on the Garmin calendar |
 
 ## Authentication
 
