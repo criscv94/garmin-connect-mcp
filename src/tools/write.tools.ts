@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { GarminClient, buildWorkoutPayload } from '../client';
+import { GarminClient, buildWorkoutPayload, buildStrengthWorkoutPayload } from '../client';
 import {
   setActivityNameSchema,
   createManualActivitySchema,
@@ -9,9 +9,10 @@ import {
   setBloodPressureSchema,
   gearActivitySchema,
   createWorkoutSchema,
+  createStrengthWorkoutSchema,
   scheduleWorkoutSchema,
 } from '../dtos';
-import type { CreateWorkoutDto } from '../dtos';
+import type { CreateWorkoutDto, CreateStrengthWorkoutDto, StrengthExerciseDto } from '../dtos';
 
 export function registerWriteTools(server: McpServer, client: GarminClient): void {
   server.registerTool(
@@ -148,6 +149,29 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
         description,
       };
       const payload = buildWorkoutPayload(dto);
+      const data = await client.createWorkout(payload);
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'create_strength_workout',
+    {
+      description:
+        'Create a structured strength training workout with exercises, sets, reps or duration, and rest periods. Each exercise generates one step per set with a rest step after each set. Supports bodyweight and weighted exercises from the Garmin exercise library.',
+      inputSchema: createStrengthWorkoutSchema.shape,
+    },
+    async ({ workoutName, exercises, defaultRestSeconds, estimatedDurationInSecs, description }) => {
+      const dto: CreateStrengthWorkoutDto = {
+        workoutName,
+        exercises: exercises as StrengthExerciseDto[],
+        defaultRestSeconds,
+        estimatedDurationInSecs,
+        description,
+      };
+      const payload = buildStrengthWorkoutPayload(dto);
       const data = await client.createWorkout(payload);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
