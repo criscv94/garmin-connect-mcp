@@ -23,7 +23,7 @@ const TARGET_TYPE_MAP: Record<string, { workoutTargetTypeId: number; workoutTarg
 
 const RUNNING_SPORT = { sportTypeId: 1, sportTypeKey: 'running', displayOrder: 1 };
 const STRENGTH_SPORT = { sportTypeId: 5, sportTypeKey: 'strength_training', displayOrder: 13 };
-const WEIGHT_UNIT_KG = { unitId: 1, unitKey: 'kilogram', factor: 1000.0 };
+const WEIGHT_UNIT_KG = { unitId: 8, unitKey: 'kilogram', factor: 1000.0 };
 const REPS_END_CONDITION = { conditionTypeId: 10, conditionTypeKey: 'reps' };
 const TIME_END_CONDITION = { conditionTypeId: 2, conditionTypeKey: 'time' };
 const NO_TARGET = { workoutTargetTypeId: 1, workoutTargetTypeKey: 'no.target' };
