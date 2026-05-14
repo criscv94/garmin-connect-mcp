@@ -1,5 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { GarminClient, buildWorkoutPayload, buildStrengthWorkoutPayload } from '../client';
+import { GarminClient, buildWorkoutPayload, buildStrengthWorkoutPayload, buildCyclingWorkoutPayload } from '../client';
 import {
   setActivityNameSchema,
   createManualActivitySchema,
@@ -10,9 +10,10 @@ import {
   gearActivitySchema,
   createWorkoutSchema,
   createStrengthWorkoutSchema,
+  createCyclingWorkoutSchema,
   scheduleWorkoutSchema,
 } from '../dtos';
-import type { CreateWorkoutDto, CreateStrengthWorkoutDto, StrengthExerciseDto } from '../dtos';
+import type { CreateWorkoutDto, CreateStrengthWorkoutDto, StrengthExerciseDto, CreateCyclingWorkoutDto } from '../dtos';
 
 export function registerWriteTools(server: McpServer, client: GarminClient): void {
   server.registerTool(
@@ -172,6 +173,29 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
         description,
       };
       const payload = buildStrengthWorkoutPayload(dto);
+      const data = await client.createWorkout(payload);
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'create_cycling_workout',
+    {
+      description:
+        'Create a structured cycling workout (outdoor or indoor trainer) with warmup, intervals, repeats, and cooldown. Steps support time/distance end conditions and power (watts), cadence (RPM), heart rate zone, or speed targets',
+      inputSchema: createCyclingWorkoutSchema.shape,
+    },
+    async ({ workoutName, bikeType, steps, estimatedDurationInSecs, description }) => {
+      const dto: CreateCyclingWorkoutDto = {
+        workoutName,
+        bikeType: bikeType ?? 'cycling',
+        steps: steps as CreateCyclingWorkoutDto['steps'],
+        estimatedDurationInSecs,
+        description,
+      };
+      const payload = buildCyclingWorkoutPayload(dto);
       const data = await client.createWorkout(payload);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],

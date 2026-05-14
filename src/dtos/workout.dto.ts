@@ -104,6 +104,82 @@ export const createWorkoutSchema = z.object({
   description: z.string().max(1000).optional().describe('Optional workout description'),
 });
 
+export type CyclingWorkoutStepDto = {
+  type: 'warmup' | 'interval' | 'recovery' | 'cooldown' | 'rest';
+  endConditionType?: 'time' | 'distance' | 'open';
+  endConditionValue?: number;
+  targetType?: 'no.target' | 'power.zone' | 'cadence' | 'heart.rate.zone' | 'speed';
+  targetValueLow?: number;
+  targetValueHigh?: number;
+};
+
+export type CreateCyclingWorkoutDto = {
+  workoutName: string;
+  bikeType: 'cycling' | 'indoor_cycling';
+  steps: (CyclingWorkoutStepDto | RepeatGroupDto)[];
+  estimatedDurationInSecs?: number;
+  description?: string;
+};
+
+const cyclingWorkoutStepSchema = z.object({
+  type: z.enum(['warmup', 'interval', 'recovery', 'cooldown', 'rest']).describe('Step type'),
+  endConditionType: z
+    .enum(['time', 'distance', 'open'])
+    .default('time')
+    .optional()
+    .describe('How the step ends: time (seconds), distance (meters), or open (lap button). Defaults to time'),
+  endConditionValue: z
+    .number()
+    .min(0)
+    .optional()
+    .describe('Duration in seconds (for time) or distance in meters (for distance). Not needed for open'),
+  targetType: z
+    .enum(['no.target', 'power.zone', 'cadence', 'heart.rate.zone', 'speed'])
+    .default('no.target')
+    .optional()
+    .describe(
+      'Target type for the step: power.zone (watts), cadence (RPM), heart.rate.zone (zone number), speed (m/s), or no.target. Defaults to no.target',
+    ),
+  targetValueLow: z
+    .number()
+    .optional()
+    .describe('Lower bound: watts for power.zone, RPM for cadence, zone number for heart.rate.zone, m/s for speed'),
+  targetValueHigh: z
+    .number()
+    .optional()
+    .describe('Upper bound: same unit as targetValueLow'),
+});
+
+const cyclingWorkoutStepOrGroupSchema = z.discriminatedUnion('type', [
+  cyclingWorkoutStepSchema.extend({ type: z.literal('warmup') }),
+  cyclingWorkoutStepSchema.extend({ type: z.literal('interval') }),
+  cyclingWorkoutStepSchema.extend({ type: z.literal('recovery') }),
+  cyclingWorkoutStepSchema.extend({ type: z.literal('cooldown') }),
+  cyclingWorkoutStepSchema.extend({ type: z.literal('rest') }),
+  repeatGroupSchema,
+]);
+
+export const createCyclingWorkoutSchema = z.object({
+  workoutName: z.string().min(1).max(100).describe('Name of the workout'),
+  bikeType: z
+    .enum(['cycling', 'indoor_cycling'])
+    .default('cycling')
+    .optional()
+    .describe('Sport type: cycling (outdoor road) or indoor_cycling (trainer/Zwift). Defaults to cycling'),
+  steps: z
+    .array(cyclingWorkoutStepOrGroupSchema)
+    .min(1)
+    .describe(
+      'Ordered list of workout steps and repeat groups. Example: [{type:"warmup",endConditionType:"time",endConditionValue:600},{type:"repeat",iterations:5,steps:[{type:"interval",endConditionType:"time",endConditionValue:300,targetType:"power.zone",targetValueLow:250,targetValueHigh:280},{type:"recovery",endConditionType:"time",endConditionValue:120}]},{type:"cooldown",endConditionType:"open"}]',
+    ),
+  estimatedDurationInSecs: z
+    .number()
+    .positive()
+    .optional()
+    .describe('Estimated total duration in seconds'),
+  description: z.string().max(1000).optional().describe('Optional workout description'),
+});
+
 export const scheduleWorkoutSchema = z.object({
   workoutId: z.number().positive().describe('The workout ID. Use get_workouts to find IDs'),
   date: dateString.describe('Date to schedule the workout in YYYY-MM-DD format'),

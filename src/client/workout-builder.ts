@@ -1,4 +1,4 @@
-import type { CreateWorkoutDto, WorkoutStepDto, RepeatGroupDto, CreateStrengthWorkoutDto, StrengthExerciseDto } from '../dtos';
+import type { CreateWorkoutDto, WorkoutStepDto, RepeatGroupDto, CreateStrengthWorkoutDto, StrengthExerciseDto, CreateCyclingWorkoutDto, CyclingWorkoutStepDto } from '../dtos';
 
 const STEP_TYPE_MAP: Record<string, { stepTypeId: number; stepTypeKey: string }> = {
   warmup: { stepTypeId: 1, stepTypeKey: 'warmup' },
@@ -22,6 +22,8 @@ const TARGET_TYPE_MAP: Record<string, { workoutTargetTypeId: number; workoutTarg
 };
 
 const RUNNING_SPORT = { sportTypeId: 1, sportTypeKey: 'running', displayOrder: 1 };
+const CYCLING_SPORT = { sportTypeId: 2, sportTypeKey: 'cycling', displayOrder: 2 };
+const INDOOR_CYCLING_SPORT = { sportTypeId: 2, sportTypeKey: 'indoor_cycling', displayOrder: 25 };
 const STRENGTH_SPORT = { sportTypeId: 5, sportTypeKey: 'strength_training', displayOrder: 13 };
 const WEIGHT_UNIT_KG = { unitId: 8, unitKey: 'kilogram', factor: 1000.0 };
 const REPS_END_CONDITION = { conditionTypeId: 10, conditionTypeKey: 'reps' };
@@ -172,6 +174,90 @@ export function buildStrengthWorkoutPayload(dto: CreateStrengthWorkoutDto): Reco
       {
         segmentOrder: 1,
         sportType: STRENGTH_SPORT,
+        workoutSteps,
+      },
+    ],
+  };
+
+  if (dto.estimatedDurationInSecs) {
+    payload.estimatedDurationInSecs = dto.estimatedDurationInSecs;
+  }
+
+  if (dto.description) {
+    payload.description = dto.description;
+  }
+
+  return payload;
+}
+
+const CYCLING_TARGET_TYPE_MAP: Record<string, { workoutTargetTypeId: number; workoutTargetTypeKey: string }> = {
+  'no.target': { workoutTargetTypeId: 1, workoutTargetTypeKey: 'no.target' },
+  'power.zone': { workoutTargetTypeId: 2, workoutTargetTypeKey: 'power.zone' },
+  cadence: { workoutTargetTypeId: 3, workoutTargetTypeKey: 'cadence' },
+  'heart.rate.zone': { workoutTargetTypeId: 4, workoutTargetTypeKey: 'heart.rate.zone' },
+  speed: { workoutTargetTypeId: 6, workoutTargetTypeKey: 'speed.zone' },
+};
+
+function buildCyclingExecutableStep(step: CyclingWorkoutStepDto, order: number): Record<string, unknown> {
+  const stepType = STEP_TYPE_MAP[step.type]!;
+  const endCondition = END_CONDITION_MAP[step.endConditionType ?? 'time']!;
+  const target = CYCLING_TARGET_TYPE_MAP[step.targetType ?? 'no.target']!;
+
+  return {
+    type: 'ExecutableStepDTO',
+    stepOrder: order,
+    stepType: { stepTypeId: stepType.stepTypeId, stepTypeKey: stepType.stepTypeKey },
+    endCondition: {
+      conditionTypeId: endCondition.conditionTypeId,
+      conditionTypeKey: endCondition.conditionTypeKey,
+    },
+    endConditionValue: step.endConditionValue ?? null,
+    targetType: {
+      workoutTargetTypeId: target.workoutTargetTypeId,
+      workoutTargetTypeKey: target.workoutTargetTypeKey,
+    },
+    targetValueOne: step.targetValueLow ?? null,
+    targetValueTwo: step.targetValueHigh ?? null,
+  };
+}
+
+function isCyclingRepeatGroup(step: CyclingWorkoutStepDto | RepeatGroupDto): step is RepeatGroupDto {
+  return step.type === 'repeat';
+}
+
+export function buildCyclingWorkoutPayload(dto: CreateCyclingWorkoutDto): Record<string, unknown> {
+  const sportType = dto.bikeType === 'indoor_cycling' ? INDOOR_CYCLING_SPORT : CYCLING_SPORT;
+  const workoutSteps: Record<string, unknown>[] = [];
+  let stepOrder = 1;
+
+  for (const step of dto.steps) {
+    if (isCyclingRepeatGroup(step)) {
+      const nestedSteps: Record<string, unknown>[] = [];
+      for (const nested of step.steps) {
+        nestedSteps.push(buildCyclingExecutableStep(nested as CyclingWorkoutStepDto, stepOrder));
+        stepOrder++;
+      }
+      workoutSteps.push({
+        type: 'RepeatGroupDTO',
+        stepOrder,
+        stepType: { stepTypeId: 6, stepTypeKey: 'repeat' },
+        numberOfIterations: step.iterations,
+        workoutSteps: nestedSteps,
+      });
+      stepOrder++;
+    } else {
+      workoutSteps.push(buildCyclingExecutableStep(step, stepOrder));
+      stepOrder++;
+    }
+  }
+
+  const payload: Record<string, unknown> = {
+    workoutName: dto.workoutName,
+    sportType,
+    workoutSegments: [
+      {
+        segmentOrder: 1,
+        sportType,
         workoutSteps,
       },
     ],
