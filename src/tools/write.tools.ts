@@ -12,8 +12,20 @@ import {
   createStrengthWorkoutSchema,
   createCyclingWorkoutSchema,
   scheduleWorkoutSchema,
+  updateWorkoutSchema,
+  updateStrengthWorkoutSchema,
+  updateCyclingWorkoutSchema,
+  deleteWorkoutSchema,
 } from '../dtos';
-import type { CreateWorkoutDto, CreateStrengthWorkoutDto, StrengthExerciseDto, CreateCyclingWorkoutDto } from '../dtos';
+import type {
+  CreateWorkoutDto,
+  CreateStrengthWorkoutDto,
+  StrengthExerciseDto,
+  CreateCyclingWorkoutDto,
+  UpdateWorkoutDto,
+  UpdateStrengthWorkoutDto,
+  UpdateCyclingWorkoutDto,
+} from '../dtos';
 
 export function registerWriteTools(server: McpServer, client: GarminClient): void {
   server.registerTool(
@@ -214,6 +226,91 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
       const data = await client.scheduleWorkout(workoutId, date);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'update_workout',
+    {
+      description:
+        'Update an existing running workout by fully replacing its steps. Use get_workouts to find the workout ID',
+      inputSchema: updateWorkoutSchema.shape,
+    },
+    async ({ workoutId, workoutName, steps, estimatedDurationInSecs, description }) => {
+      const dto: UpdateWorkoutDto = {
+        workoutId,
+        workoutName,
+        steps: steps as CreateWorkoutDto['steps'],
+        estimatedDurationInSecs,
+        description,
+      };
+      const payload = buildWorkoutPayload({ ...dto });
+      const data = await client.updateWorkout(dto.workoutId, payload);
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'update_strength_workout',
+    {
+      description:
+        'Update an existing strength workout by fully replacing its exercises. Use get_workouts to find the workout ID',
+      inputSchema: updateStrengthWorkoutSchema.shape,
+    },
+    async ({ workoutId, workoutName, exercises, defaultRestSeconds, estimatedDurationInSecs, description }) => {
+      const dto: UpdateStrengthWorkoutDto = {
+        workoutId,
+        workoutName,
+        exercises: exercises as StrengthExerciseDto[],
+        defaultRestSeconds,
+        estimatedDurationInSecs,
+        description,
+      };
+      const payload = buildStrengthWorkoutPayload({ ...dto });
+      const data = await client.updateWorkout(dto.workoutId, payload);
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'update_cycling_workout',
+    {
+      description:
+        'Update an existing cycling or indoor cycling workout by fully replacing its steps. Use get_workouts to find the workout ID',
+      inputSchema: updateCyclingWorkoutSchema.shape,
+    },
+    async ({ workoutId, workoutName, bikeType, steps, estimatedDurationInSecs, description }) => {
+      const dto: UpdateCyclingWorkoutDto = {
+        workoutId,
+        workoutName,
+        bikeType: bikeType ?? 'cycling',
+        steps: steps as CreateCyclingWorkoutDto['steps'],
+        estimatedDurationInSecs,
+        description,
+      };
+      const payload = buildCyclingWorkoutPayload({ ...dto });
+      const data = await client.updateWorkout(dto.workoutId, payload);
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
+    'delete_workout',
+    {
+      description: 'Delete a workout permanently. Works for any workout type (running, cycling, strength). This action cannot be undone',
+      inputSchema: deleteWorkoutSchema.shape,
+    },
+    async ({ workoutId }) => {
+      const data = await client.deleteWorkout(workoutId);
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(data ?? 'Workout deleted', null, 2) }],
       };
     },
   );
