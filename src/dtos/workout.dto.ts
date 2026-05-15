@@ -220,3 +220,24 @@ export const createStrengthWorkoutSchema = z.object({
   estimatedDurationInSecs: z.number().positive().optional().describe('Estimated total workout duration in seconds'),
   description: z.string().max(1000).optional().describe('Optional workout description'),
 });
+
+export type UpdateWorkoutDto = CreateWorkoutDto & { workoutId: number };
+export type UpdateStrengthWorkoutDto = CreateStrengthWorkoutDto & { workoutId: number };
+export type UpdateCyclingWorkoutDto = CreateCyclingWorkoutDto & { workoutId: number };
+export type DeleteWorkoutDto = { workoutId: number };
+
+export const updateWorkoutSchema = createWorkoutSchema.extend({
+  workoutId: z.number().positive().describe('ID of the workout to update. Use get_workouts to find IDs'),
+});
+
+export const updateStrengthWorkoutSchema = createStrengthWorkoutSchema.extend({
+  workoutId: z.number().positive().describe('ID of the workout to update. Use get_workouts to find IDs'),
+});
+
+export const updateCyclingWorkoutSchema = createCyclingWorkoutSchema.extend({
+  workoutId: z.number().positive().describe('ID of the workout to update. Use get_workouts to find IDs'),
+});
+
+export const deleteWorkoutSchema = z.object({
+  workoutId: z.number().positive().describe('ID of the workout to delete permanently. This action cannot be undone'),
+});
