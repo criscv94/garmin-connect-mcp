@@ -764,4 +764,15 @@ export class GarminClient {
       body: { date },
     });
   }
+
+  async updateWorkout(workoutId: number, payload: Record<string, unknown>): Promise<unknown> {
+    return this.request(`${WORKOUT_ENDPOINT}/${workoutId}`, {
+      method: 'PUT',
+      body: { ...payload, workoutId },
+    });
+  }
+
+  async deleteWorkout(workoutId: number): Promise<unknown> {
+    return this.request(`${WORKOUT_ENDPOINT}/${workoutId}`, { method: 'DELETE' });
+  }
 }

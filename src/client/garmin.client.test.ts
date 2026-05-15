@@ -612,6 +612,123 @@ describe('GarminClient (live API)', () => {
     }, 30000);
   });
 
+  describe('Workouts (write)', () => {
+    it('update_workout — create running workout, update name, then delete', async () => {
+      const { buildWorkoutPayload } = await import('./workout-builder');
+
+      const createPayload = buildWorkoutPayload({
+        workoutName: '__test_run_create__',
+        steps: [
+          { type: 'warmup', endConditionType: 'time', endConditionValue: 300 },
+          { type: 'interval', endConditionType: 'time', endConditionValue: 600 },
+          { type: 'cooldown', endConditionType: 'open' },
+        ],
+      });
+
+      const created = await client.createWorkout(createPayload) as { workoutId: number };
+      expect(created.workoutId).toBeDefined();
+      await sleep(DELAY_MS);
+
+      const updatePayload = buildWorkoutPayload({
+        workoutName: '__test_run_updated__',
+        steps: [
+          { type: 'warmup', endConditionType: 'time', endConditionValue: 300 },
+          { type: 'interval', endConditionType: 'time', endConditionValue: 900 },
+          { type: 'cooldown', endConditionType: 'open' },
+        ],
+      });
+
+      const updated = await client.updateWorkout(created.workoutId, updatePayload) as { workoutName: string };
+      expect(updated).toBeDefined();
+      expect(updated.workoutName).toBe('__test_run_updated__');
+      await sleep(DELAY_MS);
+
+      await client.deleteWorkout(created.workoutId);
+    }, 60000);
+
+    it('update_strength_workout — create, update, delete', async () => {
+      const { buildStrengthWorkoutPayload } = await import('./workout-builder');
+
+      const createPayload = buildStrengthWorkoutPayload({
+        workoutName: '__test_strength_create__',
+        exercises: [
+          { exerciseCategory: 'SQUAT', exerciseName: 'SQUAT', sets: 2, reps: 10, restSeconds: 60 },
+        ],
+      });
+
+      const created = await client.createWorkout(createPayload) as { workoutId: number };
+      expect(created.workoutId).toBeDefined();
+      await sleep(DELAY_MS);
+
+      const updatePayload = buildStrengthWorkoutPayload({
+        workoutName: '__test_strength_updated__',
+        exercises: [
+          { exerciseCategory: 'SQUAT', exerciseName: 'SQUAT', sets: 3, reps: 12, restSeconds: 90 },
+        ],
+      });
+
+      const updated = await client.updateWorkout(created.workoutId, updatePayload) as { workoutName: string };
+      expect(updated).toBeDefined();
+      expect(updated.workoutName).toBe('__test_strength_updated__');
+      await sleep(DELAY_MS);
+
+      await client.deleteWorkout(created.workoutId);
+    }, 60000);
+
+    it('update_cycling_workout — create, update, delete', async () => {
+      const { buildCyclingWorkoutPayload } = await import('./workout-builder');
+
+      const createPayload = buildCyclingWorkoutPayload({
+        workoutName: '__test_cycling_create__',
+        bikeType: 'indoor_cycling',
+        steps: [
+          { type: 'warmup', endConditionType: 'time', endConditionValue: 300 },
+          { type: 'interval', endConditionType: 'time', endConditionValue: 300, targetType: 'power.zone', targetValueLow: 200, targetValueHigh: 250 },
+          { type: 'cooldown', endConditionType: 'open' },
+        ],
+      });
+
+      const created = await client.createWorkout(createPayload) as { workoutId: number };
+      expect(created.workoutId).toBeDefined();
+      await sleep(DELAY_MS);
+
+      const updatePayload = buildCyclingWorkoutPayload({
+        workoutName: '__test_cycling_updated__',
+        bikeType: 'indoor_cycling',
+        steps: [
+          { type: 'warmup', endConditionType: 'time', endConditionValue: 600 },
+          { type: 'interval', endConditionType: 'time', endConditionValue: 600, targetType: 'power.zone', targetValueLow: 250, targetValueHigh: 300 },
+          { type: 'cooldown', endConditionType: 'open' },
+        ],
+      });
+
+      const updated = await client.updateWorkout(created.workoutId, updatePayload) as { workoutName: string };
+      expect(updated).toBeDefined();
+      expect(updated.workoutName).toBe('__test_cycling_updated__');
+      await sleep(DELAY_MS);
+
+      await client.deleteWorkout(created.workoutId);
+    }, 60000);
+
+    it('delete_workout — create then delete returns no error', async () => {
+      const { buildWorkoutPayload } = await import('./workout-builder');
+
+      const payload = buildWorkoutPayload({
+        workoutName: '__test_delete_only__',
+        steps: [
+          { type: 'interval', endConditionType: 'time', endConditionValue: 300 },
+        ],
+      });
+
+      const created = await client.createWorkout(payload) as { workoutId: number };
+      expect(created.workoutId).toBeDefined();
+      await sleep(DELAY_MS);
+
+      const result = await client.deleteWorkout(created.workoutId);
+      expect(result === null || result === undefined || typeof result === 'object').toBe(true);
+    }, 60000);
+  });
+
   describe('Utility: dateRange', () => {
     it('generates correct date array', () => {
       const dates = client.dateRange('2024-01-01', '2024-01-05');
