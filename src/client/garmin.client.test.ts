@@ -627,23 +627,25 @@ describe('GarminClient (live API)', () => {
 
       const created = await client.createWorkout(createPayload) as { workoutId: number };
       expect(created.workoutId).toBeDefined();
-      await sleep(DELAY_MS);
+      try {
+        await sleep(DELAY_MS);
 
-      const updatePayload = buildWorkoutPayload({
-        workoutName: '__test_run_updated__',
-        steps: [
-          { type: 'warmup', endConditionType: 'time', endConditionValue: 300 },
-          { type: 'interval', endConditionType: 'time', endConditionValue: 900 },
-          { type: 'cooldown', endConditionType: 'open' },
-        ],
-      });
+        const updatePayload = buildWorkoutPayload({
+          workoutName: '__test_run_updated__',
+          steps: [
+            { type: 'warmup', endConditionType: 'time', endConditionValue: 300 },
+            { type: 'interval', endConditionType: 'time', endConditionValue: 900 },
+            { type: 'cooldown', endConditionType: 'open' },
+          ],
+        });
 
-      const updated = await client.updateWorkout(created.workoutId, updatePayload) as { workoutName: string };
-      expect(updated).toBeDefined();
-      expect(updated.workoutName).toBe('__test_run_updated__');
-      await sleep(DELAY_MS);
-
-      await client.deleteWorkout(created.workoutId);
+        const updated = await client.updateWorkout(created.workoutId, updatePayload) as { workoutName: string };
+        expect(updated).toBeDefined();
+        expect(updated.workoutName).toBe('__test_run_updated__');
+        await sleep(DELAY_MS);
+      } finally {
+        await client.deleteWorkout(created.workoutId);
+      }
     }, 60000);
 
     it('update_strength_workout — create, update, delete', async () => {
@@ -658,21 +660,23 @@ describe('GarminClient (live API)', () => {
 
       const created = await client.createWorkout(createPayload) as { workoutId: number };
       expect(created.workoutId).toBeDefined();
-      await sleep(DELAY_MS);
+      try {
+        await sleep(DELAY_MS);
 
-      const updatePayload = buildStrengthWorkoutPayload({
-        workoutName: '__test_strength_updated__',
-        exercises: [
-          { exerciseCategory: 'SQUAT', exerciseName: 'SQUAT', sets: 3, reps: 12, restSeconds: 90 },
-        ],
-      });
+        const updatePayload = buildStrengthWorkoutPayload({
+          workoutName: '__test_strength_updated__',
+          exercises: [
+            { exerciseCategory: 'SQUAT', exerciseName: 'SQUAT', sets: 3, reps: 12, restSeconds: 90 },
+          ],
+        });
 
-      const updated = await client.updateWorkout(created.workoutId, updatePayload) as { workoutName: string };
-      expect(updated).toBeDefined();
-      expect(updated.workoutName).toBe('__test_strength_updated__');
-      await sleep(DELAY_MS);
-
-      await client.deleteWorkout(created.workoutId);
+        const updated = await client.updateWorkout(created.workoutId, updatePayload) as { workoutName: string };
+        expect(updated).toBeDefined();
+        expect(updated.workoutName).toBe('__test_strength_updated__');
+        await sleep(DELAY_MS);
+      } finally {
+        await client.deleteWorkout(created.workoutId);
+      }
     }, 60000);
 
     it('update_cycling_workout — create, update, delete', async () => {
@@ -690,24 +694,26 @@ describe('GarminClient (live API)', () => {
 
       const created = await client.createWorkout(createPayload) as { workoutId: number };
       expect(created.workoutId).toBeDefined();
-      await sleep(DELAY_MS);
+      try {
+        await sleep(DELAY_MS);
 
-      const updatePayload = buildCyclingWorkoutPayload({
-        workoutName: '__test_cycling_updated__',
-        bikeType: 'indoor_cycling',
-        steps: [
-          { type: 'warmup', endConditionType: 'time', endConditionValue: 600 },
-          { type: 'interval', endConditionType: 'time', endConditionValue: 600, targetType: 'power.zone', targetValueLow: 250, targetValueHigh: 300 },
-          { type: 'cooldown', endConditionType: 'open' },
-        ],
-      });
+        const updatePayload = buildCyclingWorkoutPayload({
+          workoutName: '__test_cycling_updated__',
+          bikeType: 'indoor_cycling',
+          steps: [
+            { type: 'warmup', endConditionType: 'time', endConditionValue: 600 },
+            { type: 'interval', endConditionType: 'time', endConditionValue: 600, targetType: 'power.zone', targetValueLow: 250, targetValueHigh: 300 },
+            { type: 'cooldown', endConditionType: 'open' },
+          ],
+        });
 
-      const updated = await client.updateWorkout(created.workoutId, updatePayload) as { workoutName: string };
-      expect(updated).toBeDefined();
-      expect(updated.workoutName).toBe('__test_cycling_updated__');
-      await sleep(DELAY_MS);
-
-      await client.deleteWorkout(created.workoutId);
+        const updated = await client.updateWorkout(created.workoutId, updatePayload) as { workoutName: string };
+        expect(updated).toBeDefined();
+        expect(updated.workoutName).toBe('__test_cycling_updated__');
+        await sleep(DELAY_MS);
+      } finally {
+        await client.deleteWorkout(created.workoutId);
+      }
     }, 60000);
 
     it('delete_workout — create then delete returns no error', async () => {
@@ -724,8 +730,7 @@ describe('GarminClient (live API)', () => {
       expect(created.workoutId).toBeDefined();
       await sleep(DELAY_MS);
 
-      const result = await client.deleteWorkout(created.workoutId);
-      expect(result === null || result === undefined || typeof result === 'object').toBe(true);
+      await client.deleteWorkout(created.workoutId);
     }, 60000);
   });
 

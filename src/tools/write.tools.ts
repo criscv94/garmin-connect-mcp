@@ -25,6 +25,7 @@ import type {
   UpdateWorkoutDto,
   UpdateStrengthWorkoutDto,
   UpdateCyclingWorkoutDto,
+  DeleteWorkoutDto,
 } from '../dtos';
 
 export function registerWriteTools(server: McpServer, client: GarminClient): void {
@@ -245,7 +246,7 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
         estimatedDurationInSecs,
         description,
       };
-      const payload = buildWorkoutPayload({ ...dto });
+      const payload = buildWorkoutPayload(dto);
       const data = await client.updateWorkout(dto.workoutId, payload);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
@@ -269,7 +270,7 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
         estimatedDurationInSecs,
         description,
       };
-      const payload = buildStrengthWorkoutPayload({ ...dto });
+      const payload = buildStrengthWorkoutPayload(dto);
       const data = await client.updateWorkout(dto.workoutId, payload);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
@@ -293,7 +294,7 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
         estimatedDurationInSecs,
         description,
       };
-      const payload = buildCyclingWorkoutPayload({ ...dto });
+      const payload = buildCyclingWorkoutPayload(dto);
       const data = await client.updateWorkout(dto.workoutId, payload);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
@@ -308,7 +309,8 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
       inputSchema: deleteWorkoutSchema.shape,
     },
     async ({ workoutId }) => {
-      const data = await client.deleteWorkout(workoutId);
+      const dto: DeleteWorkoutDto = { workoutId };
+      const data = await client.deleteWorkout(dto.workoutId);
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(data ?? 'Workout deleted', null, 2) }],
       };
