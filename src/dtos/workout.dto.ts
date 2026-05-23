@@ -66,11 +66,11 @@ const workoutStepSchema = z.object({
   targetValueLow: z
     .number()
     .optional()
-    .describe('Lower bound: m/s for speed, zone number for heart.rate.zone'),
+    .describe('Lower bound: m/s for speed, zone number 1-5 for heart.rate.zone. For zone targets, this is the single zone (targetValueHigh is ignored).'),
   targetValueHigh: z
     .number()
     .optional()
-    .describe('Upper bound: m/s for speed, zone number for heart.rate.zone'),
+    .describe('Upper bound: m/s for speed. Ignored for heart.rate.zone (single zone only — set targetValueLow).'),
 });
 
 const repeatGroupSchema = z.object({
@@ -143,11 +143,11 @@ const cyclingWorkoutStepSchema = z.object({
   targetValueLow: z
     .number()
     .optional()
-    .describe('Lower bound: watts for power.zone, RPM for cadence, zone number for heart.rate.zone, m/s for speed'),
+    .describe('Lower bound: watts for power.zone, RPM for cadence, zone number 1-5 for heart.rate.zone/power.zone, m/s for speed. For zone targets, this is the single zone (targetValueHigh is ignored).'),
   targetValueHigh: z
     .number()
     .optional()
-    .describe('Upper bound: same unit as targetValueLow'),
+    .describe('Upper bound: same unit as targetValueLow. Ignored for heart.rate.zone and power.zone (single zone only — set targetValueLow).'),
 });
 
 const cyclingWorkoutStepOrGroupSchema = z.discriminatedUnion('type', [
