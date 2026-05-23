@@ -21,6 +21,8 @@ const TARGET_TYPE_MAP: Record<string, { workoutTargetTypeId: number; workoutTarg
   'heart.rate.zone': { workoutTargetTypeId: 4, workoutTargetTypeKey: 'heart.rate.zone' },
 };
 
+const ZONE_TARGET_TYPES = new Set(['heart.rate.zone', 'power.zone']);
+
 const RUNNING_SPORT = { sportTypeId: 1, sportTypeKey: 'running', displayOrder: 1 };
 const CYCLING_SPORT = { sportTypeId: 2, sportTypeKey: 'cycling', displayOrder: 2 };
 const INDOOR_CYCLING_SPORT = { sportTypeId: 2, sportTypeKey: 'indoor_cycling', displayOrder: 25 };
@@ -37,7 +39,9 @@ function isRepeatGroup(step: WorkoutStepDto | RepeatGroupDto): step is RepeatGro
 function buildExecutableStep(step: WorkoutStepDto, order: number): Record<string, unknown> {
   const stepType = STEP_TYPE_MAP[step.type]!;
   const endCondition = END_CONDITION_MAP[step.endConditionType ?? 'time']!;
-  const target = TARGET_TYPE_MAP[step.targetType ?? 'no.target']!;
+  const targetKey = step.targetType ?? 'no.target';
+  const target = TARGET_TYPE_MAP[targetKey]!;
+  const isZone = ZONE_TARGET_TYPES.has(targetKey);
 
   return {
     type: 'ExecutableStepDTO',
@@ -52,8 +56,9 @@ function buildExecutableStep(step: WorkoutStepDto, order: number): Record<string
       workoutTargetTypeId: target.workoutTargetTypeId,
       workoutTargetTypeKey: target.workoutTargetTypeKey,
     },
-    targetValueOne: step.targetValueLow ?? null,
-    targetValueTwo: step.targetValueHigh ?? null,
+    targetValueOne: isZone ? null : (step.targetValueLow ?? null),
+    targetValueTwo: isZone ? null : (step.targetValueHigh ?? null),
+    zoneNumber: isZone ? (step.targetValueLow ?? null) : null,
   };
 }
 
@@ -201,7 +206,9 @@ const CYCLING_TARGET_TYPE_MAP: Record<string, { workoutTargetTypeId: number; wor
 function buildCyclingExecutableStep(step: CyclingWorkoutStepDto, order: number): Record<string, unknown> {
   const stepType = STEP_TYPE_MAP[step.type]!;
   const endCondition = END_CONDITION_MAP[step.endConditionType ?? 'time']!;
-  const target = CYCLING_TARGET_TYPE_MAP[step.targetType ?? 'no.target']!;
+  const targetKey = step.targetType ?? 'no.target';
+  const target = CYCLING_TARGET_TYPE_MAP[targetKey]!;
+  const isZone = ZONE_TARGET_TYPES.has(targetKey);
 
   return {
     type: 'ExecutableStepDTO',
@@ -216,8 +223,9 @@ function buildCyclingExecutableStep(step: CyclingWorkoutStepDto, order: number):
       workoutTargetTypeId: target.workoutTargetTypeId,
       workoutTargetTypeKey: target.workoutTargetTypeKey,
     },
-    targetValueOne: step.targetValueLow ?? null,
-    targetValueTwo: step.targetValueHigh ?? null,
+    targetValueOne: isZone ? null : (step.targetValueLow ?? null),
+    targetValueTwo: isZone ? null : (step.targetValueHigh ?? null),
+    zoneNumber: isZone ? (step.targetValueLow ?? null) : null,
   };
 }
 
