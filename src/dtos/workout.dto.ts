@@ -251,11 +251,11 @@ export const listStrengthExercisesSchema = z.object({
     .string()
     .optional()
     .describe('Filter by required equipment key: bodyweight, bench, barbell, dumbbells, kettlebells, sliding_discs, box, dip_device, squat_rack, jump_rope, mat, ab_wheel, weight_plates, swiss_ball, cable_machine, cable_attachment, pull_up_bar'),
-  includeUndocumented: z
+  documentedOnly: z
     .boolean()
     .default(false)
     .optional()
-    .describe('Include exercises with no Garmin reference page. Default false (returns only the 146 documented exercises). Set true to see all 1207 — useful when no documented exercise matches the need (e.g. CALF_RAISE has zero documented).'),
+    .describe('When true, returns only exercises that have a Garmin reference page (referenceUrl). 146 of 1207 are documented. Useful when the caller wants every prescribed exercise to be lookup-able on connect.garmin.com. Default false (returns all).'),
   limit: z
     .number()
     .min(1)

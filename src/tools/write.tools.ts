@@ -176,12 +176,12 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
     'list_strength_exercises',
     {
       description:
-        "List strength exercises from the Garmin catalog (1207 exercises across 33 categories). Use this to discover valid (exerciseCategory, exerciseName) pairs before calling create_strength_workout. By default returns only the 146 exercises that have a Garmin reference page (form description + images) — recommended for planning so the user has somewhere to look up form. Set includeUndocumented:true to see all 1207. Note: Garmin does NOT show video animations on custom workouts (UI- or API-created), regardless of reference availability — animations only render when modifying pre-built Garmin workouts. The reference URL is for web lookup.",
+        "List strength exercises from the Garmin catalog (1207 exercises across 33 categories). Use this to discover valid (exerciseCategory, exerciseName) pairs before calling create_strength_workout. Each entry includes referenceUrl (~146 of 1207 have one). Set documentedOnly:true to filter to those with a reference page. Filter by category and/or equipment as needed. Note: Garmin does NOT show video animations on custom workouts (UI- or API-created), regardless of reference availability — animations only render when modifying pre-built Garmin workouts. The reference URL is for web lookup of form.",
       inputSchema: listStrengthExercisesSchema.shape,
     },
-    async ({ category, equipment, limit, includeUndocumented }) => {
+    async ({ category, equipment, limit, documentedOnly }) => {
       let exercises = category ? listByCategory(category) : [...EXERCISE_CATALOG];
-      if (!includeUndocumented) {
+      if (documentedOnly) {
         exercises = exercises.filter(hasReference);
       }
       if (equipment) {
@@ -193,7 +193,7 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
         totalMatches: exercises.length,
         returned: Math.min(exercises.length, cap),
         truncated,
-        documentedOnly: !includeUndocumented,
+        documentedOnly: documentedOnly ?? false,
         categories: category ? undefined : EXERCISE_CATEGORIES,
         exercises: exercises.slice(0, cap).map((e) => ({
           category: e.category,
