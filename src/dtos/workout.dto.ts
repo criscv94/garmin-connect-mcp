@@ -23,7 +23,7 @@ export type WorkoutStepDto = {
   type: 'warmup' | 'interval' | 'recovery' | 'cooldown' | 'rest';
   endConditionType?: 'time' | 'distance' | 'open';
   endConditionValue?: number;
-  targetType?: 'no.target' | 'speed' | 'heart.rate.zone';
+  targetType?: 'no.target' | 'speed' | 'heart.rate.zone' | 'heart.rate';
   targetValueLow?: number;
   targetValueHigh?: number;
 };
@@ -59,18 +59,18 @@ const workoutStepSchema = z.object({
     .optional()
     .describe('Duration in seconds (for time) or distance in meters (for distance). Not needed for open'),
   targetType: z
-    .enum(['no.target', 'speed', 'heart.rate.zone'])
+    .enum(['no.target', 'speed', 'heart.rate.zone', 'heart.rate'])
     .default('no.target')
     .optional()
-    .describe('Target type for the step. Defaults to no.target'),
+    .describe('Target type for the step: speed (m/s range), heart.rate.zone (zone number 1-5), heart.rate (raw BPM range), or no.target. Defaults to no.target'),
   targetValueLow: z
     .number()
     .optional()
-    .describe('Lower bound: m/s for speed, zone number 1-5 for heart.rate.zone. For zone targets, this is the single zone (targetValueHigh is ignored).'),
+    .describe('Lower bound: m/s for speed, BPM for heart.rate (raw range), zone number 1-5 for heart.rate.zone. For zone targets, set low only — targetValueHigh is ignored.'),
   targetValueHigh: z
     .number()
     .optional()
-    .describe('Upper bound: m/s for speed. Ignored for heart.rate.zone (single zone only — set targetValueLow).'),
+    .describe('Upper bound: m/s for speed, BPM for heart.rate. Ignored for heart.rate.zone (single-zone — set targetValueLow only).'),
 });
 
 const repeatGroupSchema = z.object({
@@ -108,7 +108,7 @@ export type CyclingWorkoutStepDto = {
   type: 'warmup' | 'interval' | 'recovery' | 'cooldown' | 'rest';
   endConditionType?: 'time' | 'distance' | 'open';
   endConditionValue?: number;
-  targetType?: 'no.target' | 'power.zone' | 'cadence' | 'heart.rate.zone' | 'speed';
+  targetType?: 'no.target' | 'power.zone' | 'power.3s' | 'cadence' | 'heart.rate.zone' | 'heart.rate' | 'speed';
   targetValueLow?: number;
   targetValueHigh?: number;
 };
@@ -134,20 +134,20 @@ const cyclingWorkoutStepSchema = z.object({
     .optional()
     .describe('Duration in seconds (for time) or distance in meters (for distance). Not needed for open'),
   targetType: z
-    .enum(['no.target', 'power.zone', 'cadence', 'heart.rate.zone', 'speed'])
+    .enum(['no.target', 'power.zone', 'power.3s', 'cadence', 'heart.rate.zone', 'heart.rate', 'speed'])
     .default('no.target')
     .optional()
     .describe(
-      'Target type for the step: power.zone (watts), cadence (RPM), heart.rate.zone (zone number), speed (m/s), or no.target. Defaults to no.target',
+      'Target type for the step: power.zone (zone number), power.3s (raw 3-sec smoothed watts range — TrainingPeaks default), cadence (RPM), heart.rate.zone (zone number), heart.rate (raw BPM range), speed (m/s), or no.target. Defaults to no.target',
     ),
   targetValueLow: z
     .number()
     .optional()
-    .describe('Lower bound: watts for power.zone, RPM for cadence, zone number 1-5 for heart.rate.zone/power.zone, m/s for speed. For zone targets, this is the single zone (targetValueHigh is ignored).'),
+    .describe('Lower bound: zone number 1-5 for heart.rate.zone/power.zone, watts for power.3s (raw range), RPM for cadence, BPM for heart.rate (raw range), m/s for speed. For zone targets, set low only — targetValueHigh is ignored.'),
   targetValueHigh: z
     .number()
     .optional()
-    .describe('Upper bound: same unit as targetValueLow. Ignored for heart.rate.zone and power.zone (single zone only — set targetValueLow).'),
+    .describe('Upper bound: same unit as targetValueLow. Ignored for heart.rate.zone and power.zone (single-zone — set targetValueLow only).'),
 });
 
 const cyclingWorkoutStepOrGroupSchema = z.discriminatedUnion('type', [

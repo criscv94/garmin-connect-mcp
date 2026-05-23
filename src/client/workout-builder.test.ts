@@ -16,21 +16,14 @@ function firstStep(payload: Record<string, unknown>): ExecutableStep {
 }
 
 describe('buildWorkoutPayload (running)', () => {
-  it('puts speed bounds into targetValueOne/Two, leaves zoneNumber null', () => {
+  it('speed bounds go into targetValueOne/Two, zoneNumber null', () => {
     const payload = buildWorkoutPayload({
       workoutName: 'test',
       steps: [
-        {
-          type: 'interval',
-          endConditionType: 'time',
-          endConditionValue: 300,
-          targetType: 'speed',
-          targetValueLow: 3.5,
-          targetValueHigh: 4.0,
-        },
+        { type: 'interval', endConditionType: 'time', endConditionValue: 300,
+          targetType: 'speed', targetValueLow: 3.5, targetValueHigh: 4.0 },
       ],
     });
-
     const step = firstStep(payload);
     expect(step.targetType.workoutTargetTypeKey).toBe('speed.zone');
     expect(step.targetValueOne).toBe(3.5);
@@ -38,48 +31,50 @@ describe('buildWorkoutPayload (running)', () => {
     expect(step.zoneNumber).toBeNull();
   });
 
-  it('heart.rate.zone puts zone number into zoneNumber and leaves targetValueOne/Two null', () => {
+  it('heart.rate.zone routes zone number into zoneNumber, leaves target values null', () => {
     const payload = buildWorkoutPayload({
       workoutName: 'test',
       steps: [
-        {
-          type: 'interval',
-          endConditionType: 'time',
-          endConditionValue: 600,
-          targetType: 'heart.rate.zone',
-          targetValueLow: 2,
-          targetValueHigh: 2,
-        },
+        { type: 'interval', endConditionType: 'time', endConditionValue: 600,
+          targetType: 'heart.rate.zone', targetValueLow: 2, targetValueHigh: 2 },
       ],
     });
-
     const step = firstStep(payload);
-    expect(step.targetType.workoutTargetTypeKey).toBe('heart.rate.zone');
     expect(step.targetType.workoutTargetTypeId).toBe(4);
+    expect(step.targetType.workoutTargetTypeKey).toBe('heart.rate.zone');
     expect(step.zoneNumber).toBe(2);
     expect(step.targetValueOne).toBeNull();
     expect(step.targetValueTwo).toBeNull();
   });
 
-  it('heart.rate.zone ignores targetValueHigh when low and high differ', () => {
+  it('heart.rate.zone uses targetValueLow as the single zone when low/high differ', () => {
     const payload = buildWorkoutPayload({
       workoutName: 'test',
       steps: [
-        {
-          type: 'interval',
-          endConditionType: 'time',
-          endConditionValue: 600,
-          targetType: 'heart.rate.zone',
-          targetValueLow: 3,
-          targetValueHigh: 5,
-        },
+        { type: 'interval', endConditionType: 'time', endConditionValue: 600,
+          targetType: 'heart.rate.zone', targetValueLow: 3, targetValueHigh: 5 },
       ],
     });
-
     const step = firstStep(payload);
     expect(step.zoneNumber).toBe(3);
     expect(step.targetValueOne).toBeNull();
     expect(step.targetValueTwo).toBeNull();
+  });
+
+  it('heart.rate (raw BPM) emits id 4 / heart.rate.zone with BPM in targetValueOne/Two', () => {
+    const payload = buildWorkoutPayload({
+      workoutName: 'test',
+      steps: [
+        { type: 'interval', endConditionType: 'time', endConditionValue: 600,
+          targetType: 'heart.rate', targetValueLow: 130, targetValueHigh: 145 },
+      ],
+    });
+    const step = firstStep(payload);
+    expect(step.targetType.workoutTargetTypeId).toBe(4);
+    expect(step.targetType.workoutTargetTypeKey).toBe('heart.rate.zone');
+    expect(step.targetValueOne).toBe(130);
+    expect(step.targetValueTwo).toBe(145);
+    expect(step.zoneNumber).toBeNull();
   });
 
   it('no.target leaves all target value fields null', () => {
@@ -87,7 +82,6 @@ describe('buildWorkoutPayload (running)', () => {
       workoutName: 'test',
       steps: [{ type: 'warmup', endConditionType: 'time', endConditionValue: 300 }],
     });
-
     const step = firstStep(payload);
     expect(step.targetType.workoutTargetTypeKey).toBe('no.target');
     expect(step.targetValueOne).toBeNull();
@@ -97,22 +91,15 @@ describe('buildWorkoutPayload (running)', () => {
 });
 
 describe('buildCyclingWorkoutPayload', () => {
-  it('power.zone puts zone number into zoneNumber and leaves targetValueOne/Two null', () => {
+  it('power.zone routes zone number into zoneNumber, leaves target values null', () => {
     const payload = buildCyclingWorkoutPayload({
       workoutName: 'test',
       bikeType: 'indoor_cycling',
       steps: [
-        {
-          type: 'interval',
-          endConditionType: 'time',
-          endConditionValue: 180,
-          targetType: 'power.zone',
-          targetValueLow: 4,
-          targetValueHigh: 4,
-        },
+        { type: 'interval', endConditionType: 'time', endConditionValue: 180,
+          targetType: 'power.zone', targetValueLow: 4, targetValueHigh: 4 },
       ],
     });
-
     const step = firstStep(payload);
     expect(step.targetType.workoutTargetTypeKey).toBe('power.zone');
     expect(step.zoneNumber).toBe(4);
@@ -120,49 +107,69 @@ describe('buildCyclingWorkoutPayload', () => {
     expect(step.targetValueTwo).toBeNull();
   });
 
-  it('power.zone with raw watts routes the low value into zoneNumber (documents the breaking change for the BPM-in-zone-field workaround)', () => {
+  it('power.zone with raw watts routes the low value into zoneNumber (callers should migrate to power.3s)', () => {
     const payload = buildCyclingWorkoutPayload({
       workoutName: 'test',
       bikeType: 'indoor_cycling',
       steps: [
-        {
-          type: 'interval',
-          endConditionType: 'time',
-          endConditionValue: 180,
-          targetType: 'power.zone',
-          targetValueLow: 200,
-          targetValueHigh: 250,
-        },
+        { type: 'interval', endConditionType: 'time', endConditionValue: 180,
+          targetType: 'power.zone', targetValueLow: 200, targetValueHigh: 250 },
       ],
     });
-
     const step = firstStep(payload);
     expect(step.zoneNumber).toBe(200);
   });
 
-  it('heart.rate.zone on cycling also writes to zoneNumber', () => {
+  it('power.3s emits id 10 / power.3s with watts in targetValueOne/Two (TrainingPeaks-compatible)', () => {
     const payload = buildCyclingWorkoutPayload({
       workoutName: 'test',
       bikeType: 'indoor_cycling',
       steps: [
-        {
-          type: 'interval',
-          endConditionType: 'time',
-          endConditionValue: 600,
-          targetType: 'heart.rate.zone',
-          targetValueLow: 2,
-          targetValueHigh: 2,
-        },
+        { type: 'interval', endConditionType: 'time', endConditionValue: 180,
+          targetType: 'power.3s', targetValueLow: 270, targetValueHigh: 290 },
       ],
     });
+    const step = firstStep(payload);
+    expect(step.targetType.workoutTargetTypeId).toBe(10);
+    expect(step.targetType.workoutTargetTypeKey).toBe('power.3s');
+    expect(step.targetValueOne).toBe(270);
+    expect(step.targetValueTwo).toBe(290);
+    expect(step.zoneNumber).toBeNull();
+  });
 
+  it('heart.rate.zone routes to zoneNumber on cycling steps', () => {
+    const payload = buildCyclingWorkoutPayload({
+      workoutName: 'test',
+      bikeType: 'indoor_cycling',
+      steps: [
+        { type: 'interval', endConditionType: 'time', endConditionValue: 600,
+          targetType: 'heart.rate.zone', targetValueLow: 2, targetValueHigh: 2 },
+      ],
+    });
     const step = firstStep(payload);
     expect(step.zoneNumber).toBe(2);
     expect(step.targetValueOne).toBeNull();
     expect(step.targetValueTwo).toBeNull();
   });
 
-  it('speed/cadence/no.target still use targetValueOne/Two', () => {
+  it('heart.rate (raw BPM) emits id 4 / heart.rate.zone with BPM in targetValueOne/Two', () => {
+    const payload = buildCyclingWorkoutPayload({
+      workoutName: 'test',
+      bikeType: 'indoor_cycling',
+      steps: [
+        { type: 'interval', endConditionType: 'time', endConditionValue: 600,
+          targetType: 'heart.rate', targetValueLow: 120, targetValueHigh: 140 },
+      ],
+    });
+    const step = firstStep(payload);
+    expect(step.targetType.workoutTargetTypeId).toBe(4);
+    expect(step.targetType.workoutTargetTypeKey).toBe('heart.rate.zone');
+    expect(step.targetValueOne).toBe(120);
+    expect(step.targetValueTwo).toBe(140);
+    expect(step.zoneNumber).toBeNull();
+  });
+
+  it('speed and cadence keep their raw value ranges in targetValueOne/Two', () => {
     const speedPayload = buildCyclingWorkoutPayload({
       workoutName: 'test',
       bikeType: 'cycling',
@@ -172,6 +179,7 @@ describe('buildCyclingWorkoutPayload', () => {
       ],
     });
     const speedStep = firstStep(speedPayload);
+    expect(speedStep.targetType.workoutTargetTypeKey).toBe('speed.zone');
     expect(speedStep.targetValueOne).toBe(8.0);
     expect(speedStep.targetValueTwo).toBe(10.0);
     expect(speedStep.zoneNumber).toBeNull();
@@ -185,6 +193,7 @@ describe('buildCyclingWorkoutPayload', () => {
       ],
     });
     const cadenceStep = firstStep(cadencePayload);
+    expect(cadenceStep.targetType.workoutTargetTypeKey).toBe('cadence');
     expect(cadenceStep.targetValueOne).toBe(85);
     expect(cadenceStep.targetValueTwo).toBe(95);
     expect(cadenceStep.zoneNumber).toBeNull();
