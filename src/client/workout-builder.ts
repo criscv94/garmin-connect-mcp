@@ -19,6 +19,7 @@ const TARGET_TYPE_MAP: Record<string, { workoutTargetTypeId: number; workoutTarg
   'no.target': { workoutTargetTypeId: 1, workoutTargetTypeKey: 'no.target' },
   speed: { workoutTargetTypeId: 6, workoutTargetTypeKey: 'speed.zone' },
   'heart.rate.zone': { workoutTargetTypeId: 4, workoutTargetTypeKey: 'heart.rate.zone' },
+  'heart.rate': { workoutTargetTypeId: 4, workoutTargetTypeKey: 'heart.rate.zone' },
 };
 
 const ZONE_TARGET_TYPES = new Set(['heart.rate.zone', 'power.zone']);
@@ -200,7 +201,9 @@ const CYCLING_TARGET_TYPE_MAP: Record<string, { workoutTargetTypeId: number; wor
   'power.zone': { workoutTargetTypeId: 2, workoutTargetTypeKey: 'power.zone' },
   cadence: { workoutTargetTypeId: 3, workoutTargetTypeKey: 'cadence' },
   'heart.rate.zone': { workoutTargetTypeId: 4, workoutTargetTypeKey: 'heart.rate.zone' },
+  'heart.rate': { workoutTargetTypeId: 4, workoutTargetTypeKey: 'heart.rate.zone' },
   speed: { workoutTargetTypeId: 6, workoutTargetTypeKey: 'speed.zone' },
+  'power.3s': { workoutTargetTypeId: 10, workoutTargetTypeKey: 'power.3s' },
 };
 
 function buildCyclingExecutableStep(step: CyclingWorkoutStepDto, order: number): Record<string, unknown> {
