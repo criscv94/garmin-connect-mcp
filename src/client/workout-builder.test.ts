@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildWorkoutPayload, buildCyclingWorkoutPayload } from './workout-builder';
+import { buildWorkoutPayload, buildCyclingWorkoutPayload, buildStrengthWorkoutPayload } from './workout-builder';
 
 type ExecutableStep = {
   type: string;
@@ -197,5 +197,66 @@ describe('buildCyclingWorkoutPayload', () => {
     expect(cadenceStep.targetValueOne).toBe(85);
     expect(cadenceStep.targetValueTwo).toBe(95);
     expect(cadenceStep.zoneNumber).toBeNull();
+  });
+});
+
+describe('buildStrengthWorkoutPayload — catalog validation', () => {
+  it('accepts a catalog-valid (category, exerciseName) pair', () => {
+    const payload = buildStrengthWorkoutPayload({
+      workoutName: 'test',
+      exercises: [
+        { exerciseCategory: 'SQUAT', exerciseName: 'GOBLET_SQUAT', sets: 3, reps: 10 },
+      ],
+    });
+    expect(payload).toBeDefined();
+    const segments = payload.workoutSegments as Array<{ workoutSteps: Array<Record<string, unknown>> }>;
+    const firstExercise = segments[0]!.workoutSteps[0] as { workoutSteps: Array<Record<string, unknown>> };
+    expect((firstExercise.workoutSteps[0] as Record<string, unknown>).category).toBe('SQUAT');
+    expect((firstExercise.workoutSteps[0] as Record<string, unknown>).exerciseName).toBe('GOBLET_SQUAT');
+  });
+
+  it('rejects an unknown exerciseName with did-you-mean suggestions', () => {
+    expect(() =>
+      buildStrengthWorkoutPayload({
+        workoutName: 'test',
+        exercises: [
+          { exerciseCategory: 'PUSH_UP', exerciseName: 'BICEPS_PUSH_UP', sets: 3, reps: 10 },
+        ],
+      }),
+    ).toThrowError(/Unknown exercise 'PUSH_UP\/BICEPS_PUSH_UP'.*Did you mean:.*PUSH_UP/);
+  });
+
+  it('rejects an unknown category with category suggestions', () => {
+    expect(() =>
+      buildStrengthWorkoutPayload({
+        workoutName: 'test',
+        exercises: [
+          { exerciseCategory: 'NOT_A_CATEGORY', exerciseName: 'FOO', sets: 1, reps: 1 },
+        ],
+      }),
+    ).toThrowError(/Unknown exercise 'NOT_A_CATEGORY\/FOO'.*Did you mean:.*category=/);
+  });
+
+  it('rejects when any one exercise in the list is invalid', () => {
+    expect(() =>
+      buildStrengthWorkoutPayload({
+        workoutName: 'test',
+        exercises: [
+          { exerciseCategory: 'SQUAT', exerciseName: 'GOBLET_SQUAT', sets: 1, reps: 1 },
+          { exerciseCategory: 'DEADLIFT', exerciseName: 'SINGLE_LEG_ROMANIAN_DEADLIFT_CIRCUIT', sets: 1, reps: 1 },
+        ],
+      }),
+    ).toThrowError(/SINGLE_LEG_ROMANIAN_DEADLIFT_CIRCUIT/);
+  });
+
+  it('accepts multiple valid exercises and preserves order', () => {
+    const payload = buildStrengthWorkoutPayload({
+      workoutName: 'test',
+      exercises: [
+        { exerciseCategory: 'SQUAT', exerciseName: 'GOBLET_SQUAT', sets: 1, reps: 1 },
+        { exerciseCategory: 'PLANK', exerciseName: 'SIDE_PLANK', sets: 1, durationSeconds: 30 },
+      ],
+    });
+    expect(payload).toBeDefined();
   });
 });

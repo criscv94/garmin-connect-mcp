@@ -1,4 +1,5 @@
 import type { CreateWorkoutDto, WorkoutStepDto, RepeatGroupDto, CreateStrengthWorkoutDto, StrengthExerciseDto, CreateCyclingWorkoutDto, CyclingWorkoutStepDto } from '../dtos';
+import { findExercise, listByCategory, EXERCISE_CATEGORIES } from '../constants';
 
 const STEP_TYPE_MAP: Record<string, { stepTypeId: number; stepTypeKey: string }> = {
   warmup: { stepTypeId: 1, stepTypeKey: 'warmup' },
@@ -111,7 +112,47 @@ export function buildWorkoutPayload(dto: CreateWorkoutDto): Record<string, unkno
   return payload;
 }
 
+function levenshtein(a: string, b: string): number {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const dp: number[][] = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) dp[i]![0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0]![j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i]![j] = Math.min(dp[i - 1]![j]! + 1, dp[i]![j - 1]! + 1, dp[i - 1]![j - 1]! + cost);
+    }
+  }
+  return dp[a.length]![b.length]!;
+}
+
+function suggestExercises(category: string, badName: string, limit = 5): string[] {
+  if (!EXERCISE_CATEGORIES.includes(category)) {
+    return EXERCISE_CATEGORIES
+      .map((c) => [c, levenshtein(category, c)] as const)
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, limit)
+      .map(([c]) => `category=${c}`);
+  }
+  return listByCategory(category)
+    .map((e) => [e.name, levenshtein(badName, e.name)] as const)
+    .sort((a, b) => a[1] - b[1])
+    .slice(0, limit)
+    .map(([n]) => n);
+}
+
+function validateExercise(exercise: StrengthExerciseDto): void {
+  if (findExercise(exercise.exerciseCategory, exercise.exerciseName)) return;
+  const suggestions = suggestExercises(exercise.exerciseCategory, exercise.exerciseName);
+  const hint = suggestions.length > 0 ? ` Did you mean: ${suggestions.join(', ')}?` : '';
+  throw new Error(
+    `Unknown exercise '${exercise.exerciseCategory}/${exercise.exerciseName}' — not in Garmin's strength catalog.${hint}`,
+  );
+}
+
 function buildStrengthExerciseStep(exercise: StrengthExerciseDto, order: number): Record<string, unknown> {
+  validateExercise(exercise);
   const isTimeBased = exercise.durationSeconds !== undefined;
   const step: Record<string, unknown> = {
     type: 'ExecutableStepDTO',

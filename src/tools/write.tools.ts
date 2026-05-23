@@ -16,7 +16,9 @@ import {
   updateStrengthWorkoutSchema,
   updateCyclingWorkoutSchema,
   deleteWorkoutSchema,
+  listStrengthExercisesSchema,
 } from '../dtos';
+import { EXERCISE_CATALOG, EXERCISE_CATEGORIES, listByCategory } from '../constants';
 import type {
   CreateWorkoutDto,
   CreateStrengthWorkoutDto,
@@ -171,10 +173,44 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
   );
 
   server.registerTool(
+    'list_strength_exercises',
+    {
+      description:
+        'List strength exercises from the Garmin catalog (1207 exercises across 33 categories). Use this to discover valid (exerciseCategory, exerciseName) pairs before calling create_strength_workout. Filter by category and/or equipment. Each entry includes the friendly name, body parts, difficulty, and equipment.',
+      inputSchema: listStrengthExercisesSchema.shape,
+    },
+    async ({ category, equipment, limit }) => {
+      let exercises = category ? listByCategory(category) : [...EXERCISE_CATALOG];
+      if (equipment) {
+        exercises = exercises.filter((e) => e.equipment.includes(equipment as never));
+      }
+      const cap = limit ?? 50;
+      const truncated = exercises.length > cap;
+      const result = {
+        totalMatches: exercises.length,
+        returned: Math.min(exercises.length, cap),
+        truncated,
+        categories: category ? undefined : EXERCISE_CATEGORIES,
+        exercises: exercises.slice(0, cap).map((e) => ({
+          category: e.category,
+          name: e.name,
+          friendly: e.friendly,
+          equipment: e.equipment,
+          difficulty: e.difficulty,
+          bodyParts: e.bodyParts,
+        })),
+      };
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
+      };
+    },
+  );
+
+  server.registerTool(
     'create_strength_workout',
     {
       description:
-        'Create a structured strength training workout with exercises, sets, reps or duration, and rest periods. Each exercise generates one step per set with a rest step after each set. Supports bodyweight and weighted exercises from the Garmin exercise library.',
+        'Create a structured strength training workout with exercises, sets, reps or duration, and rest periods. Each exercise generates one step per set with a rest step after each set. Exercise (exerciseCategory, exerciseName) pairs are validated against the bundled Garmin catalog (1207 exercises); invalid pairs are rejected with did-you-mean suggestions. Use list_strength_exercises to discover valid names.',
       inputSchema: createStrengthWorkoutSchema.shape,
     },
     async ({ workoutName, exercises, defaultRestSeconds, estimatedDurationInSecs, description }) => {

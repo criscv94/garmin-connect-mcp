@@ -189,12 +189,12 @@ const strengthExerciseSchema = z.object({
   exerciseCategory: z
     .string()
     .describe(
-      'Garmin exercise category. Examples: BENCH_PRESS, SHOULDER_PRESS, LATERAL_RAISE, TRICEPS_EXTENSION, FLY, PULL_UP, LAT_PULL_DOWN, ROW, CURL, SQUAT, DEADLIFT, LUNGE, CALF_RAISE, LEG_PRESS, LEG_CURL, LEG_EXTENSION, PLANK, CRUNCH, LEG_RAISE, CORE, HIP_RAISE, SHRUG',
+      'Garmin exercise category. Must be one of the 33 valid categories: BENCH_PRESS, CALF_RAISE, CARDIO, CARRY, CHOP, CORE, CRUNCH, CURL, DEADLIFT, FLYE, HIP_RAISE, HIP_STABILITY, HIP_SWING, HYPEREXTENSION, LATERAL_RAISE, LEG_CURL, LEG_RAISE, LUNGE, OLYMPIC_LIFT, PLANK, PLYO, PULL_UP, PUSH_UP, ROW, RUN, SHOULDER_PRESS, SHOULDER_STABILITY, SHRUG, SIT_UP, SQUAT, TOTAL_BODY, TRICEPS_EXTENSION, WARM_UP. Use list_strength_exercises to discover valid names within a category.',
     ),
   exerciseName: z
     .string()
     .describe(
-      'Garmin exercise name within the category. Examples: BARBELL_BENCH_PRESS, DUMBBELL_BENCH_PRESS, INCLINE_DUMBBELL_BENCH_PRESS, DUMBBELL_SHOULDER_PRESS, BARBELL_SHOULDER_PRESS, DUMBBELL_LATERAL_RAISE, CABLE_LATERAL_RAISE, TRICEPS_PUSHDOWN, CABLE_OVERHEAD_TRICEPS_EXTENSION, DUMBBELL_FLY, CABLE_CROSSOVER, PULL_UP, CHIN_UP, CABLE_LAT_PULLDOWN, WIDE_GRIP_LAT_PULLDOWN, DUMBBELL_ROW, SEATED_CABLE_ROW, BARBELL_ROW, DUMBBELL_BICEPS_CURL, BARBELL_BICEPS_CURL, HAMMER_CURL, BARBELL_BACK_SQUAT, SQUAT, GOBLET_SQUAT, ROMANIAN_DEADLIFT, DEADLIFT, DUMBBELL_SPLIT_SQUAT, BULGARIAN_SPLIT_SQUAT, LUNGE, CALF_RAISE, PLANK, SIDE_PLANK, CRUNCH, CABLE_CRUNCH, HANGING_KNEE_RAISE, HANGING_LEG_RAISE, DEAD_BUG, AB_WHEEL_ROLLOUT, CABLE_FACE_PULL',
+      'Garmin exercise name within the category. Must exist in the bundled catalog (1207 exercises). Use list_strength_exercises to browse valid names. Examples: SQUAT/GOBLET_SQUAT, PUSH_UP/PUSH_UP, DEADLIFT/DUMBBELL_DEADLIFT, PLANK/SIDE_PLANK, ROW/SINGLE_ARM_DUMBBELL_ROW. Invalid pairs are rejected with did-you-mean suggestions.',
     ),
   sets: z.number().min(1).max(20).describe('Number of sets'),
   reps: z.number().min(1).max(200).optional().describe('Reps per set. Use for rep-based exercises. Omit if using durationSeconds'),
@@ -240,4 +240,22 @@ export const updateCyclingWorkoutSchema = createCyclingWorkoutSchema.extend({
 
 export const deleteWorkoutSchema = z.object({
   workoutId: z.number().positive().describe('ID of the workout to delete permanently. This action cannot be undone'),
+});
+
+export const listStrengthExercisesSchema = z.object({
+  category: z
+    .string()
+    .optional()
+    .describe('Filter by exercise category (e.g. SQUAT, PUSH_UP). Omit to list all categories at the top level. Use this to discover valid (category, exerciseName) pairs for create_strength_workout.'),
+  equipment: z
+    .string()
+    .optional()
+    .describe('Filter by required equipment key: bodyweight, bench, barbell, dumbbells, kettlebells, sliding_discs, box, dip_device, squat_rack, jump_rope, mat, ab_wheel, weight_plates, swiss_ball, cable_machine, cable_attachment, pull_up_bar'),
+  limit: z
+    .number()
+    .min(1)
+    .max(200)
+    .default(50)
+    .optional()
+    .describe('Max number of exercises to return (default 50). Reduce to keep responses small.'),
 });
