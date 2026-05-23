@@ -260,3 +260,28 @@ describe('buildStrengthWorkoutPayload — catalog validation', () => {
     expect(payload).toBeDefined();
   });
 });
+
+describe('exercise catalog metadata', () => {
+  it('documented exercises (GOBLET_SQUAT) have a non-null referenceUrl', async () => {
+    const { findExercise, hasReference } = await import('../constants');
+    const entry = findExercise('SQUAT', 'GOBLET_SQUAT');
+    expect(entry).toBeDefined();
+    expect(hasReference(entry!)).toBe(true);
+    expect(entry!.referenceUrl).toContain('connect.garmin.com');
+  });
+
+  it('undocumented exercises (BENCH_PRESS/ALTERNATING_DUMBBELL_CHEST_PRESS) have null referenceUrl', async () => {
+    const { findExercise, hasReference } = await import('../constants');
+    const entry = findExercise('BENCH_PRESS', 'ALTERNATING_DUMBBELL_CHEST_PRESS');
+    expect(entry).toBeDefined();
+    expect(hasReference(entry!)).toBe(false);
+    expect(entry!.referenceUrl).toBeNull();
+  });
+
+  it('the documented exercise count is in the right ballpark (~146)', async () => {
+    const { EXERCISE_CATALOG, hasReference } = await import('../constants');
+    const documented = EXERCISE_CATALOG.filter(hasReference).length;
+    expect(documented).toBeGreaterThan(100);
+    expect(documented).toBeLessThan(200);
+  });
+});

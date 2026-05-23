@@ -246,11 +246,16 @@ export const listStrengthExercisesSchema = z.object({
   category: z
     .string()
     .optional()
-    .describe('Filter by exercise category (e.g. SQUAT, PUSH_UP). Omit to list all categories at the top level. Use this to discover valid (category, exerciseName) pairs for create_strength_workout.'),
+    .describe('Filter by exercise category (e.g. SQUAT, PUSH_UP). Omit to list across all categories. Use this to discover valid (category, exerciseName) pairs for create_strength_workout.'),
   equipment: z
     .string()
     .optional()
     .describe('Filter by required equipment key: bodyweight, bench, barbell, dumbbells, kettlebells, sliding_discs, box, dip_device, squat_rack, jump_rope, mat, ab_wheel, weight_plates, swiss_ball, cable_machine, cable_attachment, pull_up_bar'),
+  includeUndocumented: z
+    .boolean()
+    .default(false)
+    .optional()
+    .describe('Include exercises with no Garmin reference page. Default false (returns only the 146 documented exercises). Set true to see all 1207 — useful when no documented exercise matches the need (e.g. CALF_RAISE has zero documented).'),
   limit: z
     .number()
     .min(1)

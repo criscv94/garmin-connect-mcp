@@ -18,7 +18,7 @@ import {
   deleteWorkoutSchema,
   listStrengthExercisesSchema,
 } from '../dtos';
-import { EXERCISE_CATALOG, EXERCISE_CATEGORIES, listByCategory } from '../constants';
+import { EXERCISE_CATALOG, EXERCISE_CATEGORIES, listByCategory, hasReference } from '../constants';
 import type {
   CreateWorkoutDto,
   CreateStrengthWorkoutDto,
@@ -176,11 +176,14 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
     'list_strength_exercises',
     {
       description:
-        'List strength exercises from the Garmin catalog (1207 exercises across 33 categories). Use this to discover valid (exerciseCategory, exerciseName) pairs before calling create_strength_workout. Filter by category and/or equipment. Each entry includes the friendly name, body parts, difficulty, and equipment.',
+        "List strength exercises from the Garmin catalog (1207 exercises across 33 categories). Use this to discover valid (exerciseCategory, exerciseName) pairs before calling create_strength_workout. By default returns only the 146 exercises that have a Garmin reference page (form description + images) — recommended for planning so the user has somewhere to look up form. Set includeUndocumented:true to see all 1207. Note: Garmin does NOT show video animations on custom workouts (UI- or API-created), regardless of reference availability — animations only render when modifying pre-built Garmin workouts. The reference URL is for web lookup.",
       inputSchema: listStrengthExercisesSchema.shape,
     },
-    async ({ category, equipment, limit }) => {
+    async ({ category, equipment, limit, includeUndocumented }) => {
       let exercises = category ? listByCategory(category) : [...EXERCISE_CATALOG];
+      if (!includeUndocumented) {
+        exercises = exercises.filter(hasReference);
+      }
       if (equipment) {
         exercises = exercises.filter((e) => e.equipment.includes(equipment as never));
       }
@@ -190,6 +193,7 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
         totalMatches: exercises.length,
         returned: Math.min(exercises.length, cap),
         truncated,
+        documentedOnly: !includeUndocumented,
         categories: category ? undefined : EXERCISE_CATEGORIES,
         exercises: exercises.slice(0, cap).map((e) => ({
           category: e.category,
@@ -198,6 +202,7 @@ export function registerWriteTools(server: McpServer, client: GarminClient): voi
           equipment: e.equipment,
           difficulty: e.difficulty,
           bodyParts: e.bodyParts,
+          referenceUrl: e.referenceUrl,
         })),
       };
       return {

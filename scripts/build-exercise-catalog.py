@@ -69,6 +69,7 @@ def main():
         body_parts = row[col_index["Body parts"]].strip()
         difficulty = row[col_index["Difficulty"]].strip()
         focus = row[col_index["Focus"]].strip()
+        reference_url = row[col_index["URL"]].strip() if col_index.get("URL") is not None else ""
 
         equipment = []
         for col in EQUIPMENT_COLUMNS:
@@ -86,6 +87,7 @@ def main():
             "difficulty": difficulty,
             "focus": focus,
             "equipment": equipment,
+            "referenceUrl": reference_url,
         })
         categories.setdefault(category, []).append(name)
 
@@ -114,12 +116,18 @@ def main():
         "  difficulty: string;",
         "  focus: string;",
         "  equipment: EquipmentKey[];",
+        "  /** Garmin reference page URL (form description + images). Only ~12% of catalog entries have one.",
+        "   *  Garmin Connect Web does NOT show video animations on custom workouts regardless of this field —",
+        "   *  animations only render when modifying a pre-built Garmin workout. A reference URL is useful so",
+        "   *  the user can look up form on the web instead of YouTube, even though the watch shows no animation. */",
+        "  referenceUrl: string | null;",
         "};",
         "",
         "export const EXERCISE_CATALOG: readonly ExerciseEntry[] = [",
     ]
     for e in exercises:
         equipment_str = ", ".join(f"'{eq}'" for eq in e["equipment"])
+        ref = json.dumps(e["referenceUrl"]) if e["referenceUrl"] else "null"
         lines.append(
             "  { "
             f"category: '{e['category']}', "
@@ -128,7 +136,8 @@ def main():
             f"bodyParts: {json.dumps(e['bodyParts'])}, "
             f"difficulty: {json.dumps(e['difficulty'])}, "
             f"focus: {json.dumps(e['focus'])}, "
-            f"equipment: [{equipment_str}]"
+            f"equipment: [{equipment_str}], "
+            f"referenceUrl: {ref}"
             " },"
         )
     lines.append("];")
@@ -151,6 +160,10 @@ def main():
         "",
         "export function listByCategory(category: string): ExerciseEntry[] {",
         "  return EXERCISE_CATALOG.filter((e) => e.category === category);",
+        "}",
+        "",
+        "export function hasReference(entry: ExerciseEntry): boolean {",
+        "  return entry.referenceUrl !== null && entry.referenceUrl !== '';",
         "}",
         "",
     ]
