@@ -169,6 +169,64 @@ describe('buildCyclingWorkoutPayload', () => {
     expect(step.zoneNumber).toBeNull();
   });
 
+  it('power.3s inside a repeat group is preserved (not rewritten to running schema)', () => {
+    const payload = buildCyclingWorkoutPayload({
+      workoutName: 'test',
+      bikeType: 'indoor_cycling',
+      steps: [
+        { type: 'warmup', endConditionType: 'time', endConditionValue: 600 },
+        {
+          type: 'repeat',
+          iterations: 5,
+          steps: [
+            { type: 'interval', endConditionType: 'time', endConditionValue: 180,
+              targetType: 'power.3s', targetValueLow: 270, targetValueHigh: 290 },
+            { type: 'recovery', endConditionType: 'time', endConditionValue: 180,
+              targetType: 'power.3s', targetValueLow: 110, targetValueHigh: 130 },
+          ],
+        },
+        { type: 'cooldown', endConditionType: 'time', endConditionValue: 300 },
+      ],
+    });
+
+    const segments = payload.workoutSegments as Array<{ workoutSteps: Array<Record<string, unknown>> }>;
+    const repeat = segments[0]!.workoutSteps[1] as { type: string; numberOfIterations: number; workoutSteps: ExecutableStep[] };
+    expect(repeat.type).toBe('RepeatGroupDTO');
+    expect(repeat.numberOfIterations).toBe(5);
+
+    const intervalStep = repeat.workoutSteps[0]!;
+    expect(intervalStep.targetType.workoutTargetTypeId).toBe(10);
+    expect(intervalStep.targetType.workoutTargetTypeKey).toBe('power.3s');
+    expect(intervalStep.targetValueOne).toBe(270);
+    expect(intervalStep.targetValueTwo).toBe(290);
+
+    const recoveryStep = repeat.workoutSteps[1]!;
+    expect(recoveryStep.targetType.workoutTargetTypeKey).toBe('power.3s');
+    expect(recoveryStep.targetValueOne).toBe(110);
+    expect(recoveryStep.targetValueTwo).toBe(130);
+  });
+
+  it('cadence inside a repeat group routes through the cycling schema', () => {
+    const payload = buildCyclingWorkoutPayload({
+      workoutName: 'test',
+      bikeType: 'cycling',
+      steps: [
+        {
+          type: 'repeat',
+          iterations: 3,
+          steps: [
+            { type: 'interval', endConditionType: 'time', endConditionValue: 120,
+              targetType: 'cadence', targetValueLow: 90, targetValueHigh: 100 },
+          ],
+        },
+      ],
+    });
+    const segments = payload.workoutSegments as Array<{ workoutSteps: Array<Record<string, unknown>> }>;
+    const repeat = segments[0]!.workoutSteps[0] as { workoutSteps: ExecutableStep[] };
+    expect(repeat.workoutSteps[0]!.targetType.workoutTargetTypeKey).toBe('cadence');
+    expect(repeat.workoutSteps[0]!.targetValueOne).toBe(90);
+  });
+
   it('speed and cadence keep their raw value ranges in targetValueOne/Two', () => {
     const speedPayload = buildCyclingWorkoutPayload({
       workoutName: 'test',
