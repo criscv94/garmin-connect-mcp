@@ -113,10 +113,16 @@ export type CyclingWorkoutStepDto = {
   targetValueHigh?: number;
 };
 
+export type CyclingRepeatGroupDto = {
+  type: 'repeat';
+  iterations: number;
+  steps: CyclingWorkoutStepDto[];
+};
+
 export type CreateCyclingWorkoutDto = {
   workoutName: string;
   bikeType: 'cycling' | 'indoor_cycling';
-  steps: (CyclingWorkoutStepDto | RepeatGroupDto)[];
+  steps: (CyclingWorkoutStepDto | CyclingRepeatGroupDto)[];
   estimatedDurationInSecs?: number;
   description?: string;
 };
@@ -150,13 +156,19 @@ const cyclingWorkoutStepSchema = z.object({
     .describe('Upper bound: same unit as targetValueLow. Ignored for heart.rate.zone and power.zone (single-zone — set targetValueLow only).'),
 });
 
+const cyclingRepeatGroupSchema = z.object({
+  type: z.literal('repeat').describe('Must be "repeat" for interval groups'),
+  iterations: z.number().min(1).max(99).describe('Number of times to repeat the group'),
+  steps: z.array(cyclingWorkoutStepSchema).min(1).describe('Cycling steps to repeat in each iteration'),
+});
+
 const cyclingWorkoutStepOrGroupSchema = z.discriminatedUnion('type', [
   cyclingWorkoutStepSchema.extend({ type: z.literal('warmup') }),
   cyclingWorkoutStepSchema.extend({ type: z.literal('interval') }),
   cyclingWorkoutStepSchema.extend({ type: z.literal('recovery') }),
   cyclingWorkoutStepSchema.extend({ type: z.literal('cooldown') }),
   cyclingWorkoutStepSchema.extend({ type: z.literal('rest') }),
-  repeatGroupSchema,
+  cyclingRepeatGroupSchema,
 ]);
 
 export const createCyclingWorkoutSchema = z.object({

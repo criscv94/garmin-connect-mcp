@@ -1,4 +1,4 @@
-import type { CreateWorkoutDto, WorkoutStepDto, RepeatGroupDto, CreateStrengthWorkoutDto, StrengthExerciseDto, CreateCyclingWorkoutDto, CyclingWorkoutStepDto } from '../dtos';
+import type { CreateWorkoutDto, WorkoutStepDto, RepeatGroupDto, CreateStrengthWorkoutDto, StrengthExerciseDto, CreateCyclingWorkoutDto, CyclingWorkoutStepDto, CyclingRepeatGroupDto } from '../dtos';
 
 const STEP_TYPE_MAP: Record<string, { stepTypeId: number; stepTypeKey: string }> = {
   warmup: { stepTypeId: 1, stepTypeKey: 'warmup' },
@@ -232,7 +232,7 @@ function buildCyclingExecutableStep(step: CyclingWorkoutStepDto, order: number):
   };
 }
 
-function isCyclingRepeatGroup(step: CyclingWorkoutStepDto | RepeatGroupDto): step is RepeatGroupDto {
+function isCyclingRepeatGroup(step: CyclingWorkoutStepDto | CyclingRepeatGroupDto): step is CyclingRepeatGroupDto {
   return step.type === 'repeat';
 }
 
@@ -245,7 +245,7 @@ export function buildCyclingWorkoutPayload(dto: CreateCyclingWorkoutDto): Record
     if (isCyclingRepeatGroup(step)) {
       const nestedSteps: Record<string, unknown>[] = [];
       for (const nested of step.steps) {
-        nestedSteps.push(buildCyclingExecutableStep(nested as CyclingWorkoutStepDto, stepOrder));
+        nestedSteps.push(buildCyclingExecutableStep(nested, stepOrder));
         stepOrder++;
       }
       workoutSteps.push({
