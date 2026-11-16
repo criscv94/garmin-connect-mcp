@@ -612,6 +612,44 @@ describe('GarminClient (live API)', () => {
     }, 30000);
   });
 
+  describe('Calendar', () => {
+    it('get_calendar returns items in range without nulls', async () => {
+      const data = await client.getCalendar(monthAgo(), yesterday());
+      expect(Array.isArray(data)).toBe(true);
+      for (const item of data) {
+        expect(String(item.date) >= monthAgo() && String(item.date) <= yesterday()).toBe(true);
+        expect(Object.values(item).includes(null)).toBe(false);
+      }
+    }, 60000);
+
+    it('schedule, reschedule and unschedule a workout', async () => {
+      const { buildWorkoutPayload } = await import('./workout-builder');
+      const created = await client.createWorkout(
+        buildWorkoutPayload({
+          workoutName: '__test_calendar__',
+          steps: [{ type: 'interval', endConditionType: 'time', endConditionValue: 600 }],
+        }),
+      ) as { workoutId: number };
+      try {
+        const scheduled = await client.scheduleWorkout(created.workoutId, '2027-01-15') as { workoutScheduleId: number };
+        const moved = await client.rescheduleWorkout(scheduled.workoutScheduleId, '2027-01-16') as { calendarDate: string };
+        expect(moved.calendarDate).toBe('2027-01-16');
+        const items = await client.getCalendar('2027-01-15', '2027-01-16', 'workout');
+        const mine = items.filter((i) => i.workoutId === created.workoutId);
+        expect(mine.map((i) => [i.id, i.date])).toEqual([[scheduled.workoutScheduleId, '2027-01-16']]);
+        await client.unscheduleWorkout(scheduled.workoutScheduleId);
+        const after = await client.getCalendar('2027-01-15', '2027-01-16', 'workout');
+        expect(after.some((i) => i.workoutId === created.workoutId)).toBe(false);
+      } finally {
+        await client.deleteWorkout(created.workoutId);
+      }
+    }, 60000);
+
+    it('get_calendar rejects an inverted range', async () => {
+      await expect(client.getCalendar('2027-01-16', '2027-01-15')).rejects.toThrow('endDate');
+    });
+  });
+
   describe('Workouts (write)', () => {
     it('update_workout — create running workout, update name, then delete', async () => {
       const { buildWorkoutPayload } = await import('./workout-builder');

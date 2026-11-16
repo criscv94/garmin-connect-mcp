@@ -66,6 +66,8 @@ import {
   TRAINING_PLANS_ENDPOINT,
   ADAPTIVE_TRAINING_PLAN_ENDPOINT,
   SCHEDULED_WORKOUT_ENDPOINT,
+  CALENDAR_ENDPOINT,
+  CALENDAR_MAX_RANGE_DAYS,
   MENSTRUAL_CALENDAR_ENDPOINT,
   MENSTRUAL_DAYVIEW_ENDPOINT,
   PREGNANCY_SNAPSHOT_ENDPOINT,
@@ -763,6 +765,45 @@ export class GarminClient {
       method: 'POST',
       body: { date },
     });
+  }
+
+  async getCalendar(startDate: string, endDate: string, itemType?: string): Promise<Record<string, unknown>[]> {
+    const start = new Date(`${startDate}T00:00:00Z`);
+    const end = new Date(`${endDate}T00:00:00Z`);
+    if (end < start) throw new Error('endDate must be on or after startDate');
+    const rangeDays = (end.getTime() - start.getTime()) / 86400000;
+    if (rangeDays > CALENDAR_MAX_RANGE_DAYS) throw new Error(`Date range cannot exceed ${CALENDAR_MAX_RANGE_DAYS} days`);
+
+    const itemsById = new Map<unknown, Record<string, unknown>>();
+    const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+    while (cursor <= end) {
+      const month = await this.request<{ calendarItems?: Record<string, unknown>[] }>(
+        `${CALENDAR_ENDPOINT}/${cursor.getUTCFullYear()}/month/${cursor.getUTCMonth()}`,
+      );
+      for (const item of month.calendarItems ?? []) itemsById.set(item.id, item);
+      cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    }
+
+    return [...itemsById.values()]
+      .filter((item) => {
+        const date = String(item.date);
+        return date >= startDate && date <= endDate && (!itemType || item.itemType === itemType);
+      })
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+      .map((item) => Object.fromEntries(Object.entries(item).filter(([, value]) => value !== null)));
+  }
+
+  async rescheduleWorkout(scheduleId: number, date: string): Promise<unknown> {
+    const current = await this.request<Record<string, unknown>>(`${SCHEDULED_WORKOUT_ENDPOINT}/${scheduleId}`);
+    await this.request(`${SCHEDULED_WORKOUT_ENDPOINT}/${scheduleId}`, {
+      method: 'PUT',
+      body: { ...current, calendarDate: date },
+    });
+    return this.request(`${SCHEDULED_WORKOUT_ENDPOINT}/${scheduleId}`);
+  }
+
+  async unscheduleWorkout(scheduleId: number): Promise<unknown> {
+    return this.request(`${SCHEDULED_WORKOUT_ENDPOINT}/${scheduleId}`, { method: 'DELETE' });
   }
 
   async updateWorkout(workoutId: number, payload: Record<string, unknown>): Promise<unknown> {

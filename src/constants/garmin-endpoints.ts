@@ -80,6 +80,8 @@ export const ACTIVITY_POWER_ZONES_SUBPATH = 'powerTimeInZones';
 export const TRAINING_PLANS_ENDPOINT = '/trainingplan-service/trainingplan';
 export const ADAPTIVE_TRAINING_PLAN_ENDPOINT = '/trainingplan-service/trainingplan/adaptive';
 export const SCHEDULED_WORKOUT_ENDPOINT = '/workout-service/schedule';
+export const CALENDAR_ENDPOINT = '/calendar-service/year';
+export const CALENDAR_MAX_RANGE_DAYS = 366;
 
 export const MENSTRUAL_CALENDAR_ENDPOINT = '/periodichealth-service/menstrualcycle/calendar';
 export const MENSTRUAL_DAYVIEW_ENDPOINT = '/periodichealth-service/menstrualcycle/dayview';

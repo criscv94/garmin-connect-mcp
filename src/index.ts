@@ -15,6 +15,7 @@ import {
   registerWellnessTools,
   registerChallengeTools,
   registerWriteTools,
+  registerCalendarTools,
 } from './tools';
 
 const GARMIN_EMAIL = process.env.GARMIN_EMAIL;
@@ -49,6 +50,7 @@ registerTrainingTools(server, client);
 registerWellnessTools(server, client);
 registerChallengeTools(server, client);
 registerWriteTools(server, client);
+registerCalendarTools(server, client);
 
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();

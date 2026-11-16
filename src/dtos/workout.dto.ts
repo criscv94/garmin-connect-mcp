@@ -46,6 +46,21 @@ export type ScheduleWorkoutDto = {
   date: string;
 };
 
+export type GetCalendarDto = {
+  startDate: string;
+  endDate: string;
+  itemType?: 'workout' | 'activity';
+};
+
+export type RescheduleWorkoutDto = {
+  scheduleId: number;
+  date: string;
+};
+
+export type UnscheduleWorkoutDto = {
+  scheduleId: number;
+};
+
 const workoutStepSchema = z.object({
   type: z.enum(['warmup', 'interval', 'recovery', 'cooldown', 'rest']).describe('Step type'),
   endConditionType: z
@@ -195,6 +210,30 @@ export const createCyclingWorkoutSchema = z.object({
 export const scheduleWorkoutSchema = z.object({
   workoutId: z.number().positive().describe('The workout ID. Use get_workouts to find IDs'),
   date: dateString.describe('Date to schedule the workout in YYYY-MM-DD format'),
+});
+
+export const getCalendarSchema = z.object({
+  startDate: dateString.describe('Start date in YYYY-MM-DD format'),
+  endDate: dateString.describe('End date in YYYY-MM-DD format. Range can be up to 366 days'),
+  itemType: z
+    .enum(['workout', 'activity'])
+    .optional()
+    .describe('Only return this kind of item: workout (scheduled workouts) or activity (completed activities). Omit for both'),
+});
+
+export const rescheduleWorkoutSchema = z.object({
+  scheduleId: z
+    .number()
+    .positive()
+    .describe('The calendar schedule ID: the id of a workout item from get_calendar, not the workoutId'),
+  date: dateString.describe('New date in YYYY-MM-DD format'),
+});
+
+export const unscheduleWorkoutSchema = z.object({
+  scheduleId: z
+    .number()
+    .positive()
+    .describe('The calendar schedule ID: the id of a workout item from get_calendar, not the workoutId'),
 });
 
 const strengthExerciseSchema = z.object({
