@@ -18,10 +18,11 @@ import {
   registerCalendarTools,
 } from './tools';
 
+const GARMIN_TOKEN = process.env.GARMIN_TOKEN;
 const GARMIN_EMAIL = process.env.GARMIN_EMAIL;
 const GARMIN_PASSWORD = process.env.GARMIN_PASSWORD;
 
-if (!GARMIN_EMAIL || !GARMIN_PASSWORD) {
+if (!GARMIN_TOKEN && (!GARMIN_EMAIL || !GARMIN_PASSWORD)) {
   console.error(
     'Error: GARMIN_EMAIL and GARMIN_PASSWORD environment variables are required.\n' +
       'Set them when adding this MCP server:\n' +
@@ -35,7 +36,9 @@ const server = new McpServer({
   version: '1.0.0',
 });
 
-const client = new GarminClient(GARMIN_EMAIL, GARMIN_PASSWORD);
+const client = GARMIN_TOKEN
+  ? new GarminClient('', '', undefined, { mode: 'token', token: GARMIN_TOKEN })
+  : new GarminClient(GARMIN_EMAIL!, GARMIN_PASSWORD!);
 
 registerActivityTools(server, client);
 registerHealthTools(server, client);

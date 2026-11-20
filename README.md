@@ -205,6 +205,15 @@ This will:
 
 After setup, the MCP server will use the saved tokens automatically — no MFA prompt needed until the tokens expire. When they do, simply run the setup command again.
 
+### Token mode, for programs that sign people in
+
+A program managing several accounts can keep one token per person, with no password and no files in `~/.garmin-mcp`:
+
+1. Run `build/login.js` with `GARMIN_EMAIL` and `GARMIN_PASSWORD` set. It prints one JSON object per line. `{"status":"code"}` means write the one-time code as a line on stdin. It ends with `{"status":"ok","token":"..."}`, `{"status":"rejected"}`, or `{"status":"unavailable"}`.
+2. Start the server with that value in `GARMIN_TOKEN`. It needs no email or password.
+
+When Garmin stops accepting the token, tools fail with an error containing `CONNECTOR_RECONNECT_REQUIRED`, and the person has to sign in again.
+
 ## Development
 
 ```bash

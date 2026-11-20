@@ -67,6 +67,25 @@ export type RequestOptions = {
   headers?: Record<string, string>;
 };
 
+// Tells the MCP client this person has to sign in again. Don't change the wording of the marker.
+export const RECONNECT_MARKER = 'CONNECTOR_RECONNECT_REQUIRED';
+
+export class GarminReconnectRequired extends Error {
+  constructor() {
+    super(`${RECONNECT_MARKER}: the Garmin sign-in is no longer valid`);
+  }
+}
+
+export class GarminLoginRejected extends Error {}
+
+// cached: tokens live in ~/.garmin-mcp, as they always have.
+// token: only the token passed in is used, and nothing is read from or written to disk.
+// login: sign in once and hand the token back through exportToken, with nothing on disk.
+export type GarminAuthOptions =
+  | { mode: 'cached' }
+  | { mode: 'token'; token: string }
+  | { mode: 'login' };
+
 export class GarminAuth {
   private email: string;
   private password: string;
@@ -76,6 +95,7 @@ export class GarminAuth {
   private profile: UserProfile | null = null;
   private isAuthenticated = false;
   private promptMfa?: () => Promise<string>;
+  private options: GarminAuthOptions;
 
   get displayName(): string {
     return this.profile?.displayName ?? '';
@@ -85,11 +105,40 @@ export class GarminAuth {
     return this.profile?.profileId ?? 0;
   }
 
-  constructor(email: string, password: string, promptMfa?: () => Promise<string>) {
+  constructor(
+    email: string,
+    password: string,
+    promptMfa?: () => Promise<string>,
+    options: GarminAuthOptions = { mode: 'cached' },
+  ) {
     this.email = email;
     this.password = password;
     this.promptMfa = promptMfa;
-    this.loadTokens();
+    this.options = options;
+    if (options.mode === 'cached') this.loadTokens();
+    if (options.mode === 'token') this.oauth1Token = this.parseToken(options.token);
+  }
+
+  exportToken(): string {
+    if (!this.oauth1Token) throw new Error('Not signed in');
+    return JSON.stringify(this.oauth1Token);
+  }
+
+  private parseToken(text: string): OAuth1Token | null {
+    try {
+      const token = JSON.parse(text) as Partial<OAuth1Token> | null;
+      if (typeof token?.oauth_token === 'string' && typeof token.oauth_token_secret === 'string') {
+        return { oauth_token: token.oauth_token, oauth_token_secret: token.oauth_token_secret };
+      }
+    } catch {
+      // Treated the same as no token below.
+    }
+    return null;
+  }
+
+  private asReconnect(error: unknown): unknown {
+    const refused = axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403);
+    return this.options.mode === 'token' && refused ? new GarminReconnectRequired() : error;
   }
 
   async request<T>(endpoint: string, options?: RequestOptions): Promise<T> {
@@ -156,8 +205,12 @@ export class GarminAuth {
     }
 
     if (this.oauth1Token) {
-      await this.exchangeOAuth1ForOAuth2();
-      await this.fetchProfile();
+      try {
+        await this.exchangeOAuth1ForOAuth2();
+        await this.fetchProfile();
+      } catch (error) {
+        throw this.asReconnect(error);
+      }
       this.saveTokens();
       this.isAuthenticated = true;
       return;
@@ -187,6 +240,8 @@ export class GarminAuth {
   }
 
   private async login(): Promise<void> {
+    if (this.options.mode === 'token') throw new GarminReconnectRequired();
+
     console.error('Authenticating with Garmin Connect...');
 
     await this.fetchOAuthConsumer();
@@ -247,6 +302,7 @@ export class GarminAuth {
     if (!csrfMatch) throw new Error('Failed to extract CSRF token from SSO');
     const csrfToken = csrfMatch[1];
 
+    // Garmin answers a wrong email or password with 401, rather than a page without a ticket.
     const loginResponse = await ssoClient.post(SSO_SIGNIN, new URLSearchParams({
       username: this.email,
       password: this.password,
@@ -268,6 +324,11 @@ export class GarminAuth {
         Referer: SSO_SIGNIN,
         Dnt: '1',
       },
+    }).catch((error: unknown) => {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        throw new GarminLoginRejected('Login failed: invalid credentials');
+      }
+      throw error;
     });
 
     let responseHtml: string = loginResponse.data;
@@ -314,7 +375,7 @@ export class GarminAuth {
     }
 
     const ticketMatch = TICKET_REGEX.exec(responseHtml);
-    if (!ticketMatch) throw new Error('Login failed: invalid credentials or MFA verification failed');
+    if (!ticketMatch) throw new GarminLoginRejected('Login failed: invalid credentials or MFA verification failed');
 
     return ticketMatch[1]!;
   }
@@ -428,6 +489,8 @@ export class GarminAuth {
   }
 
   private saveTokens(): void {
+    if (this.options.mode !== 'cached') return;
+
     if (!fs.existsSync(TOKEN_DIR)) {
       fs.mkdirSync(TOKEN_DIR, { recursive: true, mode: 0o700 });
     }
